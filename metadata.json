@@ -1,0 +1,10 @@
+{
+  "name": "VozForge Studio",
+  "description": "Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
