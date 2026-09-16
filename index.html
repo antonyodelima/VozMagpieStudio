@@ -437,55 +437,256 @@ body{background:radial-gradient(circle at 50% -18%,#18244a 0,transparent 42%),va
 <section class="screen" data-screen="home"><div class="hero"><h2>Transforme texto em uma voz natural.</h2><p>Crie narrações, protótipos e audiolivros com as vozes TTS do Gemini. Clone sua própria voz com fidelidade ultra-realista ou suba uma gravação limpa da sua voz.</p><div class="actions"><button class="btn primary" id="homeHeroCloneBtn">🎙️ Clonar minha voz</button><label class="btn secondary" for="homeAudioFileInput" id="homeHeroUploadBtn" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📤 Subir áudio da voz</label><button class="btn ghost" data-go="studio">Estúdio</button><button class="btn ghost" data-go="voices">Meus perfis</button></div></div><div class="section voice-clone-hero card" style="background:radial-gradient(circle at 88% 12%,#8b5cf635,transparent 55%),linear-gradient(135deg,#0d162d,#090e1e);border:1px solid #8b5cf655;padding:18px;border-radius:18px;box-shadow:0 8px 30px #00000044"><div class="row" style="margin-bottom:8px"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h3 style="margin:0;font-size:16px;color:#fff">🧬 Clonagem de Voz Ultra-Realista</h3><span class="pill ok" style="font-size:10px;padding:2px 7px">Fidelidade Acústica</span></div><p class="hint" style="margin:0;font-size:12.5px;color:#cdd6eb;line-height:1.45">Grave sua própria voz no microfone ou envie um áudio limpo da sua voz para criar seu perfil vocal ultra-realista e usar nas narrações.</p></div></div><div class="shortcuts-grid" style="margin-top:12px"><button type="button" class="card secondary shortcut-btn" id="homeCardCloneMicBtn" style="text-align:left;background:#121b35;border-color:#8b5cf666;cursor:pointer;padding:14px"><div class="row" style="margin:0 0 4px"><b style="font-size:13.5px;color:#fff">🎙️ Clonar Minha Própria Voz</b><span class="pill ok" style="font-size:10.5px">Microfone</span></div><div class="hint" style="font-size:11.5px;color:#c7d0e8">Grave de 10 a 30 segundos com dicção clara para sintetizar sua voz</div></button><label class="card secondary shortcut-btn" for="homeAudioFileInput" id="homeCardUploadAudioBtn" style="text-align:left;background:#121b35;border-color:#38bdf855;cursor:pointer;padding:14px"><div class="row" style="margin:0 0 4px"><b style="font-size:13.5px;color:#fff">📤 Subir Áudio da Minha Voz</b><span class="pill" style="font-size:10.5px;border-color:#38bdf866;color:#93c5fd">Arquivo</span></div><div class="hint" style="font-size:11.5px;color:#c7d0e8">Importe um áudio (.wav, .mp3, .m4a) da sua voz para clonagem ultra-realista</div></label></div><input id="homeAudioFileInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac" class="hidden"></div><div class="grid stat-grid"><div class="card stat"><strong id="statGenerations">0</strong><span>gerações</span></div><div class="card stat"><strong id="statProfiles">0</strong><span>perfis de voz</span></div><div class="card stat"><strong id="statKeys">0</strong><span>chaves salvas</span></div></div><div class="section"><div class="row"><h3>Atalhos</h3></div><div class="shortcuts-grid"><button class="card secondary shortcut-btn" id="homeShortcutCloneBtn" style="text-align:left"><b>🧬 Clonar minha voz</b><div class="hint">Microfone ou áudio próprio</div></button><button class="card secondary shortcut-btn" data-go="studio" style="text-align:left"><b>🎙️ Nova narração</b><div class="hint">Escreva e gere áudio</div></button><button class="card secondary shortcut-btn" data-go="keys" style="text-align:left"><b>🔑 Adicionar API</b><div class="hint">Conecte sua chave Gemini</div></button><button class="card secondary shortcut-btn" data-go="admin" style="text-align:left"><b>🛡️ Administração</b><div class="hint">Painel local do app</div></button></div></div><div class="section" id="homeRecentSection"><div class="row" style="margin-bottom:10px"><h3>Projetos Recentes</h3><button type="button" class="btn ghost small" data-go="studio">Ver todos no estúdio</button></div><div id="homeRecentList" class="list"></div></div><div class="section notice info"><b>Privacidade & Ética:</b> o áudio da sua voz fica protegido 100% neste dispositivo. Utilize apenas sua própria voz ou áudios com consentimento.</div></section>
 <section class="screen hidden studio-screen" data-screen="studio"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Estúdio</h2></div><p class="sub">Escolha uma voz, descreva a performance e gere um WAV.</p><div class="stack"><div class="field"><div class="row" style="margin-bottom:2px"><label for="textInput" style="margin:0">Texto da Narração</label><span class="pill" id="splitStatusPill">1 bloco</span></div><textarea id="textInput" placeholder="Digite ou cole o texto que você quer narrar... (ex: roteiros, audiobooks, artigos)"></textarea><div class="row"><span class="hint"><span id="charCount">0</span> caracteres · <span id="chunkCountNotice">1 bloco de narração</span></span><span class="pill" id="modelPill">Gemini TTS Preview</span></div></div><div class="card auto-split-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="auto-split-header"><label class="auto-split-toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;user-select:none"><input id="autoSplitToggle" type="checkbox" checked style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"><span>Dividir automaticamente textos longos em blocos</span></label><div class="auto-split-controls"><label for="chunkSizeSelect" class="hint" style="margin:0;font-size:12px;white-space:nowrap">Máx./bloco:</label><select id="chunkSizeSelect" style="width:auto;padding:5px 8px;font-size:12px;background:#080d1b;border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer"><option value="1000">1.000 caracteres</option><option value="2000" selected>2.000 caracteres (recomendado)</option><option value="3000">3.000 caracteres</option><option value="4000">4.000 caracteres (máximo)</option></select><button type="button" class="btn ghost small" id="toggleBlocksPreviewBtn" style="padding:4px 10px;min-height:30px;font-size:11px">Ver blocos (<span id="blocksBadgeCount">1</span>) ▾</button></div></div><div id="blocksPreviewPanel" class="hidden" style="margin-top:12px;border-top:1px solid #ffffff12;padding-top:10px"><div class="hint" style="margin-bottom:8px">Os blocos abaixo serão narrados sequencialmente com a voz selecionada e concatenados no player final:</div><div id="blocksPreviewList" style="display:grid;gap:8px;max-height:220px;overflow-y:auto"></div></div></div><div class="card"><div class="row" style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Voz</h3><span class="pill" id="voiceCountBadge">30 vozes</span><span class="pill ok" id="selectedVoiceBadge" style="font-weight:600">Kore (Firme)</span></div><div style="display:flex;gap:6px"><button type="button" class="btn primary small" id="studioHeaderCloneBtn" style="font-size:11.5px;padding:3px 9px;min-height:30px">🧬 Clonar voz</button><button class="btn ghost small" data-go="voices">Meus perfis</button></div></div><div id="clonedVoiceActiveBanner" class="notice info hidden" style="background:#140e2b;border-color:#8b5cf688;margin-bottom:12px;padding:10px 12px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="font-size:22px;flex-shrink:0">🧬</span><div style="min-width:0"><div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>Voz clonada ativa para narração:</span><span id="activeClonedName" class="pill ok" style="font-size:11px;padding:1px 7px;background:#8b5cf633;border-color:#8b5cf6">Minha Voz</span></div><div class="hint" style="margin-top:2px;font-size:11px;color:#c4b5fd">Seus textos serão narrados com esta voz clonada (âncora acústica: <span id="activeClonedBase">Kore</span>).</div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button type="button" class="btn danger small" id="deleteActiveClonedVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Excluir este perfil de voz clonada">🗑️ Excluir voz</button><button type="button" class="btn ghost small" id="switchCatalogVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Restaurar voz de catálogo">Restaurar catálogo</button></div></div><div class="search-box" style="margin-bottom:12px"><span class="search-icon">🔍</span><input id="voiceSearchInput" type="text" placeholder="Buscar por voz ou estilo (ex: Firme, Brilhante, Zephyr)..." autocomplete="off"><button id="clearVoiceSearch" class="search-clear hidden" title="Limpar busca">✕</button></div><div style="margin-bottom:12px"><div class="row" style="margin-bottom:6px"><div class="hint" style="font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#cdd6eb;margin:0">Filtrar por estilo:</div><div style="display:flex;gap:4px"><button type="button" class="chip-nav-btn" id="voiceFilterScrollLeft" title="Rolar estilos para a esquerda" aria-label="Rolar estilos para a esquerda">‹</button><button type="button" class="chip-nav-btn" id="voiceFilterScrollRight" title="Rolar estilos para a direita" aria-label="Rolar estilos para a direita">›</button></div></div><div class="chip-bar-wrap"><div id="voiceFilterChips" class="chip-bar"></div></div></div><div id="voiceSelectList" class="voice-list"></div></div><div class="field"><label for="directionInput">Direção de performance (opcional)</label><input id="directionInput" placeholder="Ex.: fale com energia, em português brasileiro, ritmo calmo" value="Fale naturalmente, com dicção clara."></div><div class="card speed-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="row" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><label for="speedSlider" style="font-size:13px;font-weight:700;margin:0;color:#cdd6eb">⚡ Velocidade de Reprodução e Fala</label><span class="pill ok" id="speedValueBadge" style="font-weight:700;min-width:44px;text-align:center">1.0x</span></div><button type="button" class="btn ghost small" id="resetSpeedBtn" style="padding:2px 8px;min-height:28px;font-size:11px" title="Redefinir para velocidade padrão (1.0x)">1.0x Padrão</button></div><div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">0.5x</span><input id="speedSlider" type="range" min="0.5" max="2.0" step="0.05" value="1.0" style="flex:1;accent-color:var(--primary);cursor:pointer;height:6px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">2.0x</span></div><div class="chip-bar-wrap"><div class="chip-bar" id="speedPresetsChips" style="padding:0"><button type="button" class="chip" data-speed="0.75" style="padding:4px 10px;min-height:30px;font-size:11px">0.75x (Lento)</button><button type="button" class="chip active" data-speed="1.0" style="padding:4px 10px;min-height:30px;font-size:11px">1.0x (Normal)</button><button type="button" class="chip" data-speed="1.25" style="padding:4px 10px;min-height:30px;font-size:11px">1.25x (Dinâmico)</button><button type="button" class="chip" data-speed="1.5" style="padding:4px 10px;min-height:30px;font-size:11px">1.5x (Rápido)</button></div></div></div><div class="actions studio-actions"><button class="btn primary" id="generateBtn">✨ Gerar áudio</button><button class="btn secondary" id="clearStudio">Limpar</button></div><div id="generationStatus" class="hidden"></div><div id="playerBox" class="player hidden"><div class="player-top" style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div id="playerCoverThumb" class="gen-thumb" style="width:64px;height:64px;border-radius:14px" title="Personalizar capa com IA"><img id="playerCoverImg" src="" alt="Capa da narração" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="player-meta" style="min-width:0;flex:1"><div class="player-title-row row" style="margin-bottom:4px"><b id="playerProjectTitle" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Narração gerada</b><button type="button" class="btn ghost small" id="openCoverModalBtn" title="Personalizar capa">🎨 Capa com IA</button></div><div class="hint" id="audioMeta"></div></div></div><audio id="audioPlayer" controls></audio><div id="playerBlocksList" class="hidden" style="margin-top:10px;background:#080d1b;border:1px solid var(--line);border-radius:12px;padding:10px;max-height:160px;overflow-y:auto;font-size:12px"></div><div class="actions player-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary small" id="downloadMp3Btn" title="Baixar áudio compactado em MP3 para menor tamanho e compartilhamento fácil">⬇️ Baixar MP3 <span class="pill ok" style="font-size:9.5px;padding:1px 5px;background:#34d39922;border-color:#34d399;color:#6ee7b7">Compacto</span></button><button type="button" class="btn secondary small" id="downloadBtn" title="Baixar áudio WAV original sem compressão">⬇️ Baixar WAV</button><button type="button" class="btn ghost small" id="viewPlayerBlocksBtn">📑 Ver blocos concatenados</button><button type="button" class="btn ghost small" id="downloadCoverBtn">🖼️ Baixar Capa</button></div></div><div class="section" id="studioGenerationsSection"><div class="row" style="margin-bottom:12px"><div><h3 style="margin:0">Projetos de Narração</h3><span class="hint">Narrações com capa personalizada</span></div><span class="pill" id="genCountBadge">0 projetos</span></div><div id="generationsList" class="list"></div></div><div class="notice warn">Este app não deve ser usado para imitar pessoas reais sem consentimento, fraude, chamadas enganosas ou autenticação por voz.</div></div></section>
 <section class="screen hidden" data-screen="voices"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Meus perfis de voz</h2></div><p class="sub">Grave ou importe uma amostra somente com autorização. O perfil é guardado localmente para organizar seus trabalhos.</p><div class="actions" style="margin-bottom:16px"><button class="btn primary" id="newProfileBtn">＋ Adicionar perfil</button><button class="btn secondary" data-go="studio">Usar no estúdio</button></div><div id="profilesList" class="list"></div><div class="section notice info"><b>Importante:</b> o modelo Gemini TTS Preview disponibiliza vozes de catálogo. Um perfil gravado aqui é uma referência local e não altera a identidade das vozes de catálogo.</div></section>
-<section class="screen hidden" data-screen="keys"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Chaves de API</h2></div><p class="sub">As chaves são usadas apenas para chamar a API no dispositivo. Em produção, prefira um backend com cofre de segredos e limites por usuário.</p><div class="card stack"><div class="field"><label>Nome da chave</label><input id="keyName" placeholder="Meu projeto Gemini"></div><div class="field"><label>Gemini API key</label><input id="keyValue" type="password" placeholder="Cole sua chave aqui"></div><label class="hint"><input id="keyConsent" type="checkbox"> Entendo que a chave será armazenada localmente neste dispositivo.</label><button class="btn primary" id="saveKeyBtn">Salvar chave</button></div><div class="section"><div class="row"><h3>Chaves salvas</h3><span class="pill" id="keyCountLabel">0</span></div><div id="keysList" class="list"></div></div><div class="section notice warn">Nunca publique uma APK com uma chave embutida. Cada usuário deve informar a própria chave ou usar um servidor intermediário seguro.</div></section>
+<section class="screen hidden" data-screen="keys">
+  <div class="screen-head-row">
+    <button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span>
+    </button>
+    <h2 style="margin:0">Cofre de Segredos & API</h2>
+  </div>
+  <p class="sub">Gerencie como o app se conecta ao Gemini. O <b>Cofre de Segredos no Backend</b> mantém suas chaves no servidor e gerencia cotas e limites seguros por usuário.</p>
+
+  <!-- Seletor de Modo de Autenticação -->
+  <div class="card" style="margin-bottom:14px;background:#0d162d;border:1px solid #8b5cf655;border-radius:16px;padding:14px">
+    <div style="font-weight:700;font-size:13px;color:#cdd6eb;margin-bottom:10px">Modo de Autenticação Ativo:</div>
+    <div class="shortcuts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="authModeSelector">
+      <button type="button" class="card secondary shortcut-btn" id="authModeVaultBtn" style="padding:14px;cursor:pointer;text-align:left;border-radius:14px;transition:all .18s">
+        <div class="row" style="margin:0 0 5px"><b style="font-size:13.5px;color:#fff">🛡️ Cofre no Servidor</b><span class="pill ok" id="authModeVaultBadge" style="font-size:10px">Recomendado</span></div>
+        <div class="hint" style="font-size:11.5px;color:#c7d0e8;line-height:1.4">Chaves protegidas no backend, sem exposição no navegador, com cotas inteligentes por usuário</div>
+      </button>
+      <button type="button" class="card secondary shortcut-btn" id="authModeClientBtn" style="padding:14px;cursor:pointer;text-align:left;border-radius:14px;transition:all .18s">
+        <div class="row" style="margin:0 0 5px"><b style="font-size:13.5px;color:#fff">🔑 Chave no Dispositivo</b><span class="pill" id="authModeClientBadge" style="font-size:10px">Manual</span></div>
+        <div class="hint" style="font-size:11.5px;color:#c7d0e8;line-height:1.4">Usa chave Gemini armazenada apenas localmente no navegador deste dispositivo</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Painel do Cofre do Servidor e Cotas do Usuário -->
+  <div id="vaultStatusContainer" class="card stack" style="margin-bottom:18px;background:linear-gradient(135deg,#0d152a,#091020);border:1px solid #8b5cf644;border-radius:16px;padding:16px">
+    <div class="row" style="margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">🛡️</span>
+        <div>
+          <h3 style="margin:0;font-size:15px;color:#fff">Cofre de Segredos do Servidor</h3>
+          <div class="hint" id="vaultSourceDesc" style="font-size:11.5px">Verificando chaves no servidor...</div>
+        </div>
+      </div>
+      <span class="pill ok" id="vaultServerStatusBadge">Carregando...</span>
+    </div>
+
+    <!-- Indicador de Cotas e Limites do Usuário -->
+    <div class="card" style="background:#060a16;border:1px solid #233150;border-radius:14px;padding:14px">
+      <div class="row" style="margin-bottom:10px">
+        <b style="font-size:12.5px;color:#cdd6eb">⏱️ Suas Cotas e Limites Diários</b>
+        <span class="pill" id="vaultUserTrackId" style="font-size:10.5px">ID: anônimo</span>
+      </div>
+
+      <div style="display:grid;gap:12px">
+        <div>
+          <div class="row" style="margin-bottom:4px;font-size:11.5px">
+            <span style="color:#c7d0e8">Gerações de Áudio Hoje:</span>
+            <b id="vaultDailyGenText" style="color:#fff">0 / 30 (30 restantes)</b>
+          </div>
+          <div class="meter"><i id="vaultDailyGenMeter" style="width:0%"></i></div>
+        </div>
+
+        <div>
+          <div class="row" style="margin-bottom:4px;font-size:11.5px">
+            <span style="color:#c7d0e8">Caracteres Narrados Hoje:</span>
+            <b id="vaultDailyCharsText" style="color:#fff">0 / 30.000 (30.000 restantes)</b>
+          </div>
+          <div class="meter"><i id="vaultDailyCharsMeter" style="width:0%"></i></div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+          <span class="pill ok" id="vaultMaxCharsPerReqBadge" style="font-size:10.5px">Máx. 4.000 carac./bloco</span>
+          <span class="pill ok" id="vaultMaxReqPerMinBadge" style="font-size:10.5px">Taxa: 8 req./min</span>
+          <span class="pill" id="vaultLimitsEnabledBadge" style="font-size:10.5px">Limites Ativos</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:6px">
+      <button type="button" class="btn secondary small" id="refreshVaultStatusBtn">🔄 Atualizar Cotas</button>
+      <button type="button" class="btn primary small" id="openAdminVaultBtn" data-go="admin">🔐 Gerenciar Cofre no Painel Admin</button>
+    </div>
+  </div>
+
+  <!-- Gerenciamento de Chaves Pessoais Locais -->
+  <div id="clientKeysContainer" class="card stack" style="border-radius:16px;padding:16px">
+    <div class="row" style="margin-bottom:4px">
+      <div>
+        <h3 style="margin:0;font-size:15px;color:#fff">🔑 Chaves Pessoais no Dispositivo</h3>
+        <div class="hint" style="font-size:11.5px">Cadastre uma chave Gemini manual caso prefira utilizar sua própria cota local do Google AI Studio.</div>
+      </div>
+    </div>
+    <div class="field"><label for="keyName">Nome da chave</label><input id="keyName" placeholder="Meu projeto Gemini"></div>
+    <div class="field"><label for="keyValue">Gemini API key</label><input id="keyValue" type="password" placeholder="Cole sua chave aqui (AIzaSy...)"></div>
+    <label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input id="keyConsent" type="checkbox"> <span>Entendo que a chave será armazenada localmente neste dispositivo.</span></label>
+    <button class="btn primary" id="saveKeyBtn">Salvar chave no dispositivo</button>
+  </div>
+
+  <div class="section">
+    <div class="row"><h3>Chaves Salvas no Dispositivo</h3><span class="pill" id="keyCountLabel">0</span></div>
+    <div id="keysList" class="list"></div>
+  </div>
+
+  <div class="section notice warn">O cofre de segredos no servidor é a forma recomendada de proteger suas chaves de API contra inspeções indevidas e abusos no navegador.</div>
+</section>
 <section class="screen hidden admin-screen" data-screen="admin">
   <div class="screen-head-row">
     <button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button>
-    <h2 style="margin:0">Administração</h2>
+    <h2 style="margin:0">Administração & Cofre</h2>
   </div>
-  <p class="sub">Painel administrativo local para configurar o catálogo, acompanhar o uso e proteger os dados deste dispositivo.</p>
+  <p class="sub">Painel de gerenciamento do cofre de segredos, limites globais de uso por usuário e configurações do motor de voz.</p>
   <div class="admin-hero">
-    <div><span class="admin-kicker">Central de controle</span><h3>Seu espaço, sob controle.</h3><p>Organize o motor de voz, seus perfis e os backups em um só lugar. As configurações abaixo afetam somente este dispositivo.</p></div>
-    <span class="pill ok">● Ambiente local</span>
+    <div><span class="admin-kicker">Cofre & Governança</span><h3>Segurança e limites sob controle.</h3><p>Gerencie as chaves do cofre no servidor, configure as cotas diárias por usuário e monitore o consumo em tempo real.</p></div>
+    <span class="pill ok" id="adminHeroBadge">● Backend Ativo</span>
   </div>
   <div id="adminGate" class="card stack admin-gate">
-    <div class="admin-section-title"><span class="admin-section-icon">🔐</span><div><h3 style="margin:0 0 4px">Acesso protegido</h3><div class="hint">Digite o PIN para liberar as configurações administrativas.</div></div></div>
+    <div class="admin-section-title"><span class="admin-section-icon">🔐</span><div><h3 style="margin:0 0 4px">Acesso protegido</h3><div class="hint">Digite o PIN para liberar o cofre de segredos e as configurações administrativas.</div></div></div>
     <div class="field"><label for="adminPin">PIN de administração</label><input id="adminPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite seu PIN"></div>
     <button class="btn primary" id="adminLogin">Entrar no painel</button>
-    <div class="hint">Na primeira utilização, o PIN inicial é <b>2468</b>. Troque-o dentro do painel.</div>
+    <div class="hint">Na primeira utilização, o PIN inicial é <b>2468</b>. Troque-o na aba de segurança dentro do painel.</div>
   </div>
   <div id="adminPanel" class="hidden admin-dashboard">
     <div class="admin-overview">
       <div class="card admin-stat"><span class="admin-stat-icon">🔊</span><div><strong id="adminGen">0</strong><span>áudios gerados</span></div></div>
-      <div class="card admin-stat"><span class="admin-stat-icon">💾</span><div><strong id="adminBytes">0 KB</strong><span>amostras locais</span></div></div>
-      <div class="card admin-stat"><span class="admin-stat-icon">📊</span><div><strong id="adminEvents">0</strong><span>eventos registrados</span></div></div>
+      <div class="card admin-stat"><span class="admin-stat-icon">🛡️</span><div><strong id="adminVaultKeysCount">0</strong><span>chaves no cofre</span></div></div>
+      <div class="card admin-stat"><span class="admin-stat-icon">👥</span><div><strong id="adminTrackedUsersCount">0</strong><span>usuários rastreados</span></div></div>
     </div>
     <div class="admin-main-grid">
       <div class="admin-column">
-        <section class="section card admin-section">
-          <div class="admin-section-head"><div class="admin-section-title"><span class="admin-section-icon">⚙️</span><div><h3>Configuração do motor</h3><div class="hint">Defina o modelo e os limites de geração do seu estúdio.</div></div></div><span class="pill">Motor TTS</span></div>
-          <div class="field"><label for="adminModel">Modelo Gemini TTS</label><input id="adminModel" value="gemini-3.1-flash-tts-preview"></div>
-          <div class="field"><label for="adminLimit">Limite de caracteres por geração</label><input id="adminLimit" type="number" min="100" step="100" value="4000"></div>
-          <label class="hint"><input id="adminRequireConsent" type="checkbox" checked> exigir confirmação de consentimento ao criar perfil</label>
-          <div class="actions"><button class="btn primary" id="saveAdminBtn">Salvar configuração</button></div>
+        <!-- SEÇÃO: Cofre de Segredos no Backend -->
+        <section class="section card admin-section" id="adminVaultSection">
+          <div class="admin-section-head">
+            <div class="admin-section-title"><span class="admin-section-icon">🛡️</span><div><h3>Cofre de Segredos (Backend)</h3><div class="hint">Armazena e protege as chaves Gemini no servidor, blindando-as contra exposição.</div></div></div>
+            <span class="pill ok" id="adminVaultStatusPill">Cofre Ativo</span>
+          </div>
+
+          <div class="admin-inline-card" style="border-color:#8b5cf644">
+            <div style="font-size:12.5px;font-weight:700;color:#cdd6eb;margin-bottom:8px">Adicionar Chave ao Cofre do Servidor:</div>
+            <div class="field" style="margin-bottom:8px"><label for="vaultNewKeyName" style="font-size:11.5px">Identificação da Chave</label><input id="vaultNewKeyName" placeholder="Ex: Chave Primária Gemini 1.5/3.1"></div>
+            <div class="field" style="margin-bottom:10px"><label for="vaultNewKeyValue" style="font-size:11.5px">Chave de API Gemini</label><input id="vaultNewKeyValue" type="password" placeholder="AIzaSy..."></div>
+            <button type="button" class="btn primary small" id="addServerVaultKeyBtn" style="width:100%;min-height:40px">🔐 Guardar no Cofre Seguro</button>
+          </div>
+
+          <div style="margin-top:4px">
+            <div class="row" style="margin-bottom:8px"><b style="font-size:13px;color:#fff">Chaves no Cofre:</b><span class="pill" id="vaultKeysTotalBadge">0 chaves</span></div>
+            <div id="serverVaultKeysList" style="display:grid;gap:8px"></div>
+          </div>
         </section>
+
+        <!-- SEÇÃO: Limites e Cotas por Usuário -->
+        <section class="section card admin-section" id="adminLimitsSection">
+          <div class="admin-section-head">
+            <div class="admin-section-title"><span class="admin-section-icon">⏱️</span><div><h3>Limites de Uso por Usuário</h3><div class="hint">Regras e cotas diárias aplicadas individualmente a cada cliente/usuário.</div></div></div>
+            <span class="pill ok" id="adminLimitsStatusPill">Ativos</span>
+          </div>
+
+          <div class="admin-inline-card">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;user-select:none">
+              <input id="adminLimitsToggle" type="checkbox" checked style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer">
+              <div><b style="font-size:13px;color:#fff;display:block">Ativar Controle de Limites no Servidor</b><span class="hint" style="font-size:11px">Bloqueia abusos de cota e requisições repetitivas.</span></div>
+            </label>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="field">
+                <label for="adminMaxDailyGens" style="font-size:11.5px">Gerações diárias/usuário</label>
+                <input id="adminMaxDailyGens" type="number" min="1" max="1000" value="30">
+              </div>
+              <div class="field">
+                <label for="adminMaxDailyChars" style="font-size:11.5px">Caracteres diários/usuário</label>
+                <input id="adminMaxDailyChars" type="number" min="500" step="500" value="30000">
+              </div>
+              <div class="field">
+                <label for="adminMaxCharsPerReq" style="font-size:11.5px">Máx. caracteres/bloco</label>
+                <input id="adminMaxCharsPerReq" type="number" min="200" step="100" value="4000">
+              </div>
+              <div class="field">
+                <label for="adminMaxReqPerMin" style="font-size:11.5px">Requisições/minuto (taxa)</label>
+                <input id="adminMaxReqPerMin" type="number" min="1" max="60" value="8">
+              </div>
+            </div>
+
+            <div class="actions" style="margin-top:12px">
+              <button type="button" class="btn primary small" id="saveAdminLimitsBtn" style="width:100%;min-height:40px">💾 Salvar Limites no Servidor</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SEÇÃO: Monitoramento de Uso dos Usuários (Hoje) -->
+        <section class="section card admin-section" id="adminUsersSection">
+          <div class="admin-section-head">
+            <div class="admin-section-title"><span class="admin-section-icon">👥</span><div><h3>Consumo dos Usuários (Hoje)</h3><div class="hint">Acompanhe as gerações e caracteres consumidos por usuário hoje.</div></div></div>
+            <button type="button" class="btn ghost small" id="refreshAdminStatsBtn">🔄 Atualizar</button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
+            <div class="card" style="background:#090f20;border:1px solid #1e293b;padding:10px;text-align:center;border-radius:12px">
+              <span class="hint" style="font-size:10.5px">Gerações hoje</span>
+              <b id="adminTotalGensToday" style="font-size:18px;display:block;color:#38bdf8">0</b>
+            </div>
+            <div class="card" style="background:#090f20;border:1px solid #1e293b;padding:10px;text-align:center;border-radius:12px">
+              <span class="hint" style="font-size:10.5px">Caracteres hoje</span>
+              <b id="adminTotalCharsToday" style="font-size:18px;display:block;color:#a78bfa">0</b>
+            </div>
+            <div class="card" style="background:#090f20;border:1px solid #1e293b;padding:10px;text-align:center;border-radius:12px">
+              <span class="hint" style="font-size:10.5px">Usuários ativos</span>
+              <b id="adminActiveUsersToday" style="font-size:18px;display:block;color:#34d399">0</b>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="adminUsersTable">
+              <thead>
+                <tr>
+                  <th>Usuário / Cliente</th>
+                  <th>Gerações</th>
+                  <th>Caracteres</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody">
+                <tr><td colspan="4" style="text-align:center;padding:14px;color:var(--muted)">Nenhum consumo registrado hoje ainda.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SEÇÃO: Motor TTS -->
+        <section class="section card admin-section">
+          <div class="admin-section-head"><div class="admin-section-title"><span class="admin-section-icon">⚙️</span><div><h3>Configuração do motor local</h3><div class="hint">Defina o modelo padrão e parâmetros do seu estúdio.</div></div></div><span class="pill">Motor TTS</span></div>
+          <div class="field"><label for="adminModel">Modelo Gemini TTS</label><input id="adminModel" value="gemini-3.1-flash-tts-preview"></div>
+          <div class="field"><label for="adminLimit">Limite de caracteres local</label><input id="adminLimit" type="number" min="100" step="100" value="4000"></div>
+          <label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input id="adminRequireConsent" type="checkbox" checked> <span>Exigir confirmação de consentimento ao criar perfil</span></label>
+          <div class="actions"><button class="btn primary" id="saveAdminBtn">Salvar configuração local</button></div>
+        </section>
+      </div>
+
+      <div class="admin-column">
+        <!-- SEÇÃO: Backup e Migração -->
         <section class="section card admin-section">
           <div class="admin-section-head"><div class="admin-section-title"><span class="admin-section-icon">🗂️</span><div><h3>Backup e migração</h3><div class="hint">Transfira seus perfis de voz entre navegadores e celulares.</div></div></div><span class="pill ok" id="adminProfilesBadge">0 perfis</span></div>
           <div class="notice info">O backup JSON inclui as vozes personalizadas, as amostras de áudio e os metadados necessários para a migração.</div>
           <div class="actions"><button type="button" class="btn primary" id="exportVoicesJsonBtn">💾 Exportar vozes</button><label class="btn secondary" for="importVoicesFileInput" id="importVoicesBtnLabel" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">📥 Importar backup</label><input id="importVoicesFileInput" type="file" accept=".json,application/json" class="hidden"></div>
         </section>
+
+        <!-- SEÇÃO: Google Drive -->
         <section class="section card admin-section" id="driveSyncSection">
           <div class="admin-section-head"><div class="admin-section-title"><span class="admin-section-icon">☁️</span><div><h3>Sincronização com Google Drive</h3><div class="hint">Backup remoto automático dos seus perfis de voz na sua conta pessoal.</div></div></div><span class="pill" id="driveStatusBadge">Desconectado</span></div>
           <div id="driveUnauthBox" class="admin-inline-card" style="text-align:center"><div style="font-size:13px;color:#cdd6eb;margin-bottom:14px;line-height:1.5">Conecte o Google Drive para habilitar o <b>backup remoto automático</b> dos seus perfis vocais.</div><button type="button" class="gsi-material-button" id="googleDriveLoginBtn"><div class="gsi-material-button-state"></div><div class="gsi-material-button-content-wrapper"><div class="gsi-material-button-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="display:block" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg></div><span class="gsi-material-button-contents">Conectar Google Drive</span></div></button></div>
           <div id="driveAuthBox" class="hidden stack"><div class="admin-inline-card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px;min-width:0"><img id="driveUserAvatar" src="" alt="Usuário Google" style="width:36px;height:36px;border-radius:50%;border:1px solid #8b5cf6;background:#1e1438"><div style="min-width:0"><div id="driveUserName" style="font-weight:700;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Usuário Google</div><div id="driveUserEmail" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">email@gmail.com</div></div></div><button type="button" class="btn ghost small" id="driveLogoutBtn" style="font-size:11px;color:#fca5a5;border-color:#f8717144">Desconectar</button></div><div class="admin-inline-card"><label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;user-select:none"><input id="driveAutoSyncToggle" type="checkbox" style="margin-top:2px;width:18px;height:18px;accent-color:var(--primary);cursor:pointer"><div><b style="font-size:13px;color:#fff;display:block">Sincronização automática remota</b><span class="hint">Salva novos perfis automaticamente no seu Drive.</span></div></label></div><div id="driveSyncDetailsBox" style="font-size:12px;color:#cdd6eb;background:#060a16;border:1px solid #233150;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px"><span>Último backup:</span><b id="driveLastSyncText" style="color:#34d399">Nenhum backup realizado</b></div><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px"><span>Arquivo remoto:</span><span class="pill" style="font-size:10.5px">vozforge-perfis-backup.json</span></div></div><div class="actions"><button type="button" class="btn primary" id="driveSyncNowBtn">☁️ Fazer backup agora</button><button type="button" class="btn secondary" id="driveRestoreBtn">📥 Restaurar do Drive</button><a id="driveOpenFileLink" href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="btn ghost hidden" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">🔗 Abrir no Drive</a></div></div>
         </section>
-      </div>
-      <div class="admin-column">
+
+        <!-- SEÇÃO: Segurança e Manutenção -->
         <section class="section card admin-section admin-section--danger">
           <div class="admin-section-head"><div class="admin-section-title"><span class="admin-section-icon">🛡️</span><div><h3>Segurança e manutenção</h3><div class="hint">Proteja o painel e mantenha um relatório do uso local.</div></div></div></div>
-          <div class="field"><label for="newPin">Novo PIN</label><input id="newPin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Mínimo de 4 dígitos"></div>
+          <div class="field"><label for="newPin">Novo PIN de administração</label><input id="newPin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Mínimo de 4 dígitos"></div>
           <div class="actions"><button class="btn secondary" id="changePinBtn">Trocar PIN</button><button class="btn ghost" id="exportBtn">Exportar relatório</button><button class="btn danger" id="resetBtn">Apagar dados locais</button></div>
         </section>
+
+        <!-- SEÇÃO: Catálogo de Vozes -->
         <section class="section card admin-section admin-section--catalog"><div class="admin-section-head"><div class="admin-section-title"><span class="admin-section-icon">🎙️</span><div><h3>Catálogo ativo</h3><div class="hint">Vozes pré-criadas disponíveis no Gemini TTS Preview.</div></div></div><span class="pill">30 vozes</span></div><div class="table-wrap"><table class="table" id="voiceTable"></table></div></section>
       </div>
     </div>
@@ -496,8 +697,11 @@ body{background:radial-gradient(circle at 50% -18%,#18244a 0,transparent 42%),va
 <div id="toast" class="toast"></div><div id="profileModal" class="modal hidden"><div class="modal-box stack"><div class="row"><h3 id="profileModalTitle" style="margin:0">🧬 Clonagem de Voz Ultra-Realista</h3><button class="icon-btn" id="closeProfile">×</button></div><p class="hint" id="profileModalDesc">Grave sua própria voz no microfone ou envie um áudio de alta fidelidade para clonar sua voz e gerar narrações personalizadas.</p><div class="card" style="background:#090f20;border:1px solid #8b5cf633;border-radius:14px;padding:12px;font-size:12px"><div style="font-weight:700;color:#cdd6eb;margin-bottom:4px">💡 Guia para Clonagem Ultra-Realista:</div><ul style="margin:0;padding-left:18px;color:#a6b4d4;line-height:1.55;font-size:11.5px"><li>Grave em ambiente silencioso, sem eco ou ruídos de fundo.</li><li>Mantenha o microfone a cerca de 15 a 20 cm da boca.</li><li>Fale com clareza, ritmo constante e natural durante 10 a 30 segundos.</li></ul></div><div class="field"><label for="profileName">Nome do perfil de voz</label><input id="profileName" placeholder="Minha Voz (Clone Ultra-Realista)"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="recordBtn" style="flex:1">● Gravar Minha Voz</button><label class="btn secondary" for="audioFile" id="audioFileLabel" style="flex:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">↥ Subir Áudio</label><input id="audioFile" class="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"></div><div id="recordState" class="hint" style="min-height:22px;line-height:1.4">Nenhuma amostra selecionada.</div><audio id="samplePlayer" class="hidden" controls style="width:100%;border-radius:8px"></audio><div class="field"><label for="profileBaseVoice" style="font-size:12px;color:#cdd6eb">Voz base do catálogo para síntese no estúdio</label><select id="profileBaseVoice" style="font-size:13px;padding:9px 12px;background:#0b1223;color:var(--text);border:1px solid var(--line);border-radius:10px"><option value="Kore">Kore (Firme - Padrão recomendada)</option><option value="Zephyr">Zephyr (Brilhante)</option><option value="Puck">Puck (Animada)</option><option value="Charon">Charon (Informativa)</option><option value="Fenrir">Fenrir (Excitável)</option><option value="Leda">Leda (Jovem)</option><option value="Orus">Orus (Firme Masculina)</option><option value="Aoede">Aoede (Leve)</option><option value="Callirrhoe">Callirrhoe (Tranquila)</option><option value="Algieba">Algieba (Suave)</option></select><span class="hint" style="font-size:11px">Define a âncora acústica no Gemini TTS para reproduzir sua narração com o timbre clonado.</span></div><label class="hint" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="profileConsent" type="checkbox" checked style="margin-top:3px;accent-color:var(--primary)"><span>Confirmo que tenho autorização e que esta é minha própria voz para clonagem.</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="saveToVoiceListCheckbox" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Salvar minha voz clonada na lista de vozes salvas</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="useImmediatelyInStudio" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Escolher minha voz clonada para narrar textos</span></label><button type="button" class="btn primary" id="saveProfileBtn" style="width:100%;min-height:44px">💾 Salvar Perfil de Voz</button></div></div><div id="coverModal" class="modal hidden"><div class="modal-box stack" style="max-width:480px"><div class="row"><h3 style="margin:0">Capa do Projeto de Narração</h3><button type="button" class="icon-btn" id="closeCoverModal">×</button></div><div class="cover-preview-card"><div class="cover-art-container" id="coverArtBox"><img id="coverPreviewImg" src="" alt="Capa gerada" referrerpolicy="no-referrer"></div><div class="hint" id="coverProjectLabel" style="margin-top:9px;font-weight:600;color:#cdd6eb;text-align:center">Narração</div></div><div class="field"><label>Estilo Visual da Capa</label><div class="chip-bar-wrap"><div id="coverThemeChips" class="chip-bar"></div></div></div><div class="field"><label for="coverPromptInput">Prompt visual / Direção artística</label><input id="coverPromptInput" placeholder="Ex.: ondas de áudio néon violeta, estética cósmica, estilo minimalista..."></div><div id="coverGenStatus" class="hint" style="min-height:16px;color:#cdd6eb"></div><div class="actions"><button type="button" class="btn primary" id="doGenerateCoverBtn">✨ Gerar com IA</button><button type="button" class="btn secondary" id="applyCoverBtn">💾 Salvar no Projeto</button><button type="button" class="btn ghost" id="downloadModalCoverBtn">⬇️ Baixar PNG</button></div></div></div><div id="installModal" class="modal hidden"><div class="modal-box stack" style="max-width:420px"><div class="row"><h3 style="margin:0">📲 Instalar VozForge no Celular</h3><button type="button" class="icon-btn" id="closeInstallModal">×</button></div><div style="text-align:center;padding:10px 0"><img src="/icon-192.png" width="76" height="76" alt="VozForge" style="border-radius:18px;box-shadow:0 8px 24px #6d28d944;margin-bottom:10px"><div style="font-size:17px;font-weight:700">VozForge Studio</div><div class="hint" style="margin-top:4px">Instale o app direto no seu Android para usar em tela cheia com alta velocidade e suporte offline.</div></div><div class="notice info" style="font-size:12px;text-align:left;line-height:1.6"><b>No Google Chrome (Android):</b><br>1. Toque nos <b>3 pontinhos (⋮)</b> no canto superior do navegador.<br>2. Toque em <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b>.<br>3. Pronto! O app fica disponível no menu e na tela inicial do seu celular.</div><div class="actions"><button type="button" class="btn primary" id="confirmInstallPromptBtn">Instalar agora</button><button type="button" class="btn ghost" id="dismissInstallModalBtn">Fechar</button></div></div></div><div id="driveConfirmModal" class="modal hidden"><div class="modal-box stack" style="max-width:440px"><div class="row"><h3 style="margin:0" id="driveConfirmTitle">Confirmar Ação</h3><button type="button" class="icon-btn" id="closeDriveConfirmModal">×</button></div><div id="driveConfirmMessage" style="font-size:13px;color:#cdd6eb;line-height:1.5;margin:8px 0 12px"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="driveConfirmOkBtn" style="flex:1">Continuar</button><button type="button" class="btn ghost" id="driveConfirmCancelBtn" style="flex:1">Cancelar</button></div></div></div>
 <script>
 const VOICES=[['Zephyr','Brilhante'],['Puck','Animada'],['Charon','Informativa'],['Kore','Firme'],['Fenrir','Excitável'],['Leda','Jovem'],['Orus','Firme'],['Aoede','Leve'],['Callirrhoe','Tranquila'],['Autonoe','Brilhante'],['Enceladus','Soprosa'],['Iapetus','Clara'],['Umbriel','Tranquila'],['Algieba','Suave'],['Despina','Suave'],['Erinome','Clara'],['Algenib','Rouca'],['Rasalgethi','Informativa'],['Laomedeia','Animada'],['Achernar','Macia'],['Alnilam','Firme'],['Schedar','Equilibrada'],['Gacrux','Madura'],['Pulcherrima','Direta'],['Achird','Amigável'],['Zubenelgenubi','Casual'],['Vindemiatrix','Gentil'],['Sadachbia','Viva'],['Sadaltager','Conhecedora'],['Sulafat','Acolhedora']];
-const defaults={profiles:[],keys:[],generations:[],events:[],settings:{model:'gemini-3.1-flash-tts-preview',limit:4000,consent:true,pin:'2468',driveAutoSync:false,driveLastSync:null,driveLastSyncCount:0,driveFileId:null},selectedVoice:'Kore'};
-let db=loadDb(), currentScreen='home', currentAudioUrl=null, currentFinalPcm=null, currentWavBlob=null, currentMp3Blob=null, activePreviewAudio=null, activePreviewId=null, sampleBlob=null, recorder=null, chunks=[], serverConfig={hasServerKey:false}, voiceFilterStyle='ALL', voiceSearchQuery='', activeCoverTheme='cyberpunk', activeCoverGenId=null, activeCoverDataUrl=null, currentProjectMeta={title:'Narração',text:'',voice:'Kore',voiceStyle:'Firme'};
+const defaults={profiles:[],keys:[],generations:[],events:[],settings:{model:'gemini-3.1-flash-tts-preview',limit:4000,consent:true,pin:'2468',authMode:'vault',driveAutoSync:false,driveLastSync:null,driveLastSyncCount:0,driveFileId:null},selectedVoice:'Kore'};
+let db=loadDb();
+if(!db.clientId){db.clientId='cli_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);saveDb();}
+if(!db.settings.authMode){db.settings.authMode='vault';saveDb();}
+let currentScreen='home', currentAudioUrl=null, currentFinalPcm=null, currentWavBlob=null, currentMp3Blob=null, activePreviewAudio=null, activePreviewId=null, sampleBlob=null, recorder=null, chunks=[], serverConfig={hasServerKey:false}, voiceFilterStyle='ALL', voiceSearchQuery='', activeCoverTheme='cyberpunk', activeCoverGenId=null, activeCoverDataUrl=null, currentProjectMeta={title:'Narração',text:'',voice:'Kore',voiceStyle:'Firme'};
 
 function stopActivePreview(){
   if(activePreviewAudio){
@@ -847,7 +1051,7 @@ function go(name,pushHistory=true){
   if(name==='home'){updateStats();renderHomeRecent()}
   if(name==='studio'){renderVoiceFilters();renderVoices();renderGenerations()}
   if(name==='voices')renderProfiles();
-  if(name==='keys')renderKeys();
+  if(name==='keys'){renderKeys();loadVaultStatus()}
   if(name==='admin')renderAdmin();
   setupHorizontalScrollHelpers();
   resetScrollToTop(false);
@@ -1122,8 +1326,358 @@ function renderProfiles(){
     };
   });
 }
-function renderKeys(){const box=$('keysList');$('keyCountLabel').textContent=db.keys.length;if(!db.keys.length){box.innerHTML='<div class="empty">Nenhuma chave salva. Adicione uma chave Gemini para gerar áudio.</div>';return}box.innerHTML=db.keys.map(k=>`<div class="item"><div class="item-main"><b>🔑 ${esc(k.name)}</b><span>${k.value.slice(0,5)}••••••••${k.value.slice(-3)}</span></div><div class="actions"><button class="btn ${k.active?'primary':'secondary'} small" data-active-key="${k.id}">${k.active?'Ativa':'Ativar'}</button><button class="btn danger small" data-del-key="${k.id}">Apagar</button></div></div>`).join('');box.querySelectorAll('[data-active-key]').forEach(x=>x.onclick=()=>{db.keys.forEach(k=>k.active=k.id===x.dataset.activeKey);saveDb();renderKeys();toast('Chave ativa atualizada')});box.querySelectorAll('[data-del-key]').forEach(x=>x.onclick=()=>{db.keys=db.keys.filter(k=>k.id!==x.dataset.delKey);saveDb();renderKeys();toast('Chave removida')})}
-function renderAdmin(){if($('adminPanel').classList.contains('hidden'))return;$('adminGen').textContent=db.generations.length;$('adminBytes').textContent=Math.round(db.profiles.reduce((a,p)=>a+(p.size||0),0)/1024)+' KB';$('adminEvents').textContent=db.events.length;$('adminModel').value=db.settings.model;$('adminLimit').value=db.settings.limit;$('adminRequireConsent').checked=db.settings.consent;$('voiceTable').innerHTML=VOICES.map(v=>`<tr><td><b>${v[0]}</b></td><td>${v[1]}</td></tr>`).join('');if($('adminProfilesBadge'))$('adminProfilesBadge').textContent=`${db.profiles.length} perfil${db.profiles.length===1?'':'es'}`;if(typeof updateDriveUI==='function')updateDriveUI();}
+function renderKeys(){
+  const box=$('keysList');
+  if($('keyCountLabel'))$('keyCountLabel').textContent=db.keys.length;
+  if(!box)return;
+  if(!db.keys.length){
+    box.innerHTML='<div class="empty">Nenhuma chave salva no dispositivo. Você pode utilizar o <b>Cofre do Servidor</b> acima ou adicionar uma chave pessoal local.</div>';
+    return;
+  }
+  box.innerHTML=db.keys.map(k=>`<div class="item"><div class="item-main"><b>🔑 ${esc(k.name)}</b><span>${k.value.slice(0,5)}••••••••${k.value.slice(-3)}</span></div><div class="actions"><button class="btn ${k.active?'primary':'secondary'} small" data-active-key="${k.id}">${k.active?'Ativa':'Ativar'}</button><button class="btn danger small" data-del-key="${k.id}">Apagar</button></div></div>`).join('');
+  box.querySelectorAll('[data-active-key]').forEach(x=>x.onclick=()=>{
+    db.keys.forEach(k=>k.active=k.id===x.dataset.activeKey);
+    saveDb();
+    renderKeys();
+    toast('Chave ativa atualizada');
+  });
+  box.querySelectorAll('[data-del-key]').forEach(x=>x.onclick=()=>{
+    db.keys=db.keys.filter(k=>k.id!==x.dataset.delKey);
+    saveDb();
+    renderKeys();
+    toast('Chave removida');
+  });
+}
+
+function updateAuthModeUI(){
+  const mode=db.settings.authMode||'vault';
+  const isVault=mode==='vault';
+  const vaultBtn=$('authModeVaultBtn');
+  const clientBtn=$('authModeClientBtn');
+  if(vaultBtn){
+    vaultBtn.style.border=isVault?'2px solid #8b5cf6':'1px solid var(--line)';
+    vaultBtn.style.background=isVault?'#141c3b':'#0a1020';
+  }
+  if(clientBtn){
+    clientBtn.style.border=!isVault?'2px solid #38bdf8':'1px solid var(--line)';
+    clientBtn.style.background=!isVault?'#0f2238':'#0a1020';
+  }
+  if($('authModeVaultBadge'))$('authModeVaultBadge').className=isVault?'pill ok':'pill';
+  if($('authModeClientBadge'))$('authModeClientBadge').className=!isVault?'pill ok':'pill';
+}
+
+if($('authModeVaultBtn')){
+  $('authModeVaultBtn').onclick=()=>{
+    haptic(10);
+    db.settings.authMode='vault';
+    saveDb();
+    updateAuthModeUI();
+    toast('🛡️ Modo Cofre do Servidor ativado (Chaves blindadas no backend)');
+    loadVaultStatus();
+  };
+}
+
+if($('authModeClientBtn')){
+  $('authModeClientBtn').onclick=()=>{
+    haptic(10);
+    db.settings.authMode='client';
+    saveDb();
+    updateAuthModeUI();
+    toast('🔑 Modo Chave Local ativado (Usa chaves salvas neste aparelho)');
+    loadVaultStatus();
+  };
+}
+
+async function loadVaultStatus(){
+  updateAuthModeUI();
+  try{
+    const headers={'Content-Type':'application/json'};
+    if(db.clientId)headers['x-client-id']=db.clientId;
+    if(currentGoogleDriveUser){
+      if(currentGoogleDriveUser.email)headers['x-user-email']=currentGoogleDriveUser.email;
+      if(currentGoogleDriveUser.displayName)headers['x-user-name']=currentGoogleDriveUser.displayName;
+    }
+    const res=await fetch('/api/vault/status',{headers});
+    if(!res.ok)throw new Error('Não foi possível carregar status do cofre');
+    const data=await res.json();
+    if($('vaultServerStatusBadge')){
+      if(data.vaultReady){
+        $('vaultServerStatusBadge').textContent='● Cofre Ativo & Protegido';
+        $('vaultServerStatusBadge').className='pill ok';
+      }else{
+        $('vaultServerStatusBadge').textContent='⚠️ Sem Chave no Cofre';
+        $('vaultServerStatusBadge').className='pill warn';
+      }
+    }
+    if($('vaultSourceDesc')){
+      $('vaultSourceDesc').textContent=data.vaultReady
+        ?`Protegido no servidor (${data.source==='env'?'Variável do ambiente':'Cofre customizado'})`
+        :'Adicione uma chave no painel Admin para ativar o cofre compartilhado.';
+    }
+    if($('vaultUserTrackId')){
+      const u=data.user||{};
+      const label=u.email||u.name||(u.userId?u.userId.slice(0,14):'anônimo');
+      $('vaultUserTrackId').textContent=`Usuário: ${label}`;
+    }
+    const usage=data.usageToday||{};
+    const limits=data.limits||{};
+    const maxGens=limits.maxDailyGenerations||30;
+    const maxChars=limits.maxDailyChars||30000;
+    const gensUsed=usage.generations||0;
+    const charsUsed=usage.chars||0;
+    const gensRemaining=Math.max(0,maxGens-gensUsed);
+    const charsRemaining=Math.max(0,maxChars-charsUsed);
+    if($('vaultDailyGenText')){
+      $('vaultDailyGenText').textContent=`${gensUsed} / ${maxGens} (${gensRemaining} restante${gensRemaining===1?'':'s'})`;
+    }
+    if($('vaultDailyGenMeter')){
+      const pct=Math.min(100,Math.round((gensUsed/maxGens)*100));
+      $('vaultDailyGenMeter').style.width=`${pct}%`;
+      $('vaultDailyGenMeter').style.background=pct>90?'#f43f5e':(pct>70?'#fbbf24':'var(--primary)');
+    }
+    if($('vaultDailyCharsText')){
+      $('vaultDailyCharsText').textContent=`${charsUsed.toLocaleString('pt-BR')} / ${maxChars.toLocaleString('pt-BR')} (${charsRemaining.toLocaleString('pt-BR')} restantes)`;
+    }
+    if($('vaultDailyCharsMeter')){
+      const pct=Math.min(100,Math.round((charsUsed/maxChars)*100));
+      $('vaultDailyCharsMeter').style.width=`${pct}%`;
+      $('vaultDailyCharsMeter').style.background=pct>90?'#f43f5e':(pct>70?'#fbbf24':'#8b5cf6');
+    }
+    if($('vaultMaxCharsPerReqBadge')){
+      $('vaultMaxCharsPerReqBadge').textContent=`Máx. ${(limits.maxCharsPerRequest||4000).toLocaleString('pt-BR')} carac./bloco`;
+    }
+    if($('vaultMaxReqPerMinBadge')){
+      $('vaultMaxReqPerMinBadge').textContent=`Taxa: ${limits.maxRequestsPerMinute||8} req./min`;
+    }
+    if($('vaultLimitsEnabledBadge')){
+      $('vaultLimitsEnabledBadge').textContent=limits.enabled?'Limites Ativos':'Limites Desativados';
+      $('vaultLimitsEnabledBadge').className=limits.enabled?'pill ok':'pill';
+    }
+  }catch(err){
+    console.warn('loadVaultStatus error:',err);
+    if($('vaultServerStatusBadge')){
+      $('vaultServerStatusBadge').textContent='● Servidor Local';
+    }
+  }
+}
+if($('refreshVaultStatusBtn')){
+  $('refreshVaultStatusBtn').onclick=()=>{
+    haptic(10);
+    loadVaultStatus();
+    toast('Cotas e status do cofre atualizados.');
+  };
+}
+
+function renderAdmin(){
+  if($('adminPanel')&&$('adminPanel').classList.contains('hidden'))return;
+  if($('adminGen'))$('adminGen').textContent=db.generations.length;
+  if($('adminModel'))$('adminModel').value=db.settings.model;
+  if($('adminLimit'))$('adminLimit').value=db.settings.limit;
+  if($('adminRequireConsent'))$('adminRequireConsent').checked=db.settings.consent;
+  if($('voiceTable'))$('voiceTable').innerHTML=VOICES.map(v=>`<tr><td><b>${v[0]}</b></td><td>${v[1]}</td></tr>`).join('');
+  if($('adminProfilesBadge'))$('adminProfilesBadge').textContent=`${db.profiles.length} perfil${db.profiles.length===1?'':'es'}`;
+  if(typeof updateDriveUI==='function')updateDriveUI();
+  loadAdminVaultData();
+}
+
+async function loadAdminVaultData(){
+  const pin=db.settings.pin||'2468';
+  try{
+    const res=await fetch('/api/vault/admin/stats',{
+      headers:{'x-admin-pin':pin}
+    });
+    if(!res.ok)return;
+    const data=await res.json();
+    if(!data.ok)return;
+    if($('adminVaultKeysCount'))$('adminVaultKeysCount').textContent=(data.vault?.keys||[]).length;
+    if($('adminTrackedUsersCount'))$('adminTrackedUsersCount').textContent=data.totals?.allTrackedUsers||0;
+    if($('adminVaultStatusPill')){
+      $('adminVaultStatusPill').textContent=data.vault?.enabled?'Cofre Ativo':'Cofre Pausado';
+      $('adminVaultStatusPill').className=data.vault?.enabled?'pill ok':'pill';
+    }
+    if($('vaultKeysTotalBadge'))$('vaultKeysTotalBadge').textContent=`${(data.vault?.keys||[]).length} chaves`;
+
+    const keysList=$('serverVaultKeysList');
+    if(keysList){
+      const keys=data.vault?.keys||[];
+      if(!keys.length){
+        keysList.innerHTML='<div class="empty" style="padding:10px;font-size:12px">Nenhuma chave registrada no cofre do servidor ainda. Adicione uma acima.</div>';
+      }else{
+        keysList.innerHTML=keys.map(k=>`
+          <div class="item" style="padding:10px;border-radius:10px">
+            <div class="item-main">
+              <div class="row" style="margin-bottom:2px">
+                <b style="font-size:13px;color:#fff">🔐 ${esc(k.name)}</b>
+                ${k.active?'<span class="pill ok" style="font-size:9.5px;padding:1px 6px">ATIVA</span>':''}
+              </div>
+              <span style="font-family:monospace;font-size:11.5px;color:#94a3b8">${esc(k.masked)}</span>
+            </div>
+            <div class="actions" style="gap:6px">
+              ${k.id!=='env_master'?`
+                <button type="button" class="btn ${k.active?'secondary':'primary'} small" data-toggle-vault-key="${k.id}">${k.active?'Desativar':'Ativar'}</button>
+                <button type="button" class="btn danger small" data-del-vault-key="${k.id}">Excluir</button>
+              `:'<span class="hint" style="font-size:11px">Variável de Sistema</span>'}
+            </div>
+          </div>
+        `).join('');
+
+        keysList.querySelectorAll('[data-toggle-vault-key]').forEach(btn=>{
+          btn.onclick=async()=>{
+            const id=btn.dataset.toggleVaultKey;
+            const r=await fetch('/api/vault/keys/toggle',{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({pin:db.settings.pin,keyId:id})
+            });
+            const d=await r.json();
+            if(d.ok){
+              toast(d.message);
+              loadAdminVaultData();
+            }else{
+              toast(d.error||'Erro ao alternar chave');
+            }
+          };
+        });
+
+        keysList.querySelectorAll('[data-del-vault-key]').forEach(btn=>{
+          btn.onclick=async()=>{
+            const id=btn.dataset.delVaultKey;
+            if(!confirm('Deseja realmente remover esta chave do cofre do servidor?'))return;
+            const r=await fetch(`/api/vault/keys/${id}`,{
+              method:'DELETE',
+              headers:{'x-admin-pin':db.settings.pin}
+            });
+            const d=await r.json();
+            if(d.ok){
+              toast(d.message);
+              loadAdminVaultData();
+            }else{
+              toast(d.error||'Erro ao excluir chave');
+            }
+          };
+        });
+      }
+    }
+
+    const limits=data.limits||{};
+    if($('adminLimitsToggle'))$('adminLimitsToggle').checked=Boolean(limits.enabled!==false);
+    if($('adminMaxDailyGens'))$('adminMaxDailyGens').value=limits.maxDailyGenerations||30;
+    if($('adminMaxDailyChars'))$('adminMaxDailyChars').value=limits.maxDailyChars||30000;
+    if($('adminMaxCharsPerReq'))$('adminMaxCharsPerReq').value=limits.maxCharsPerRequest||4000;
+    if($('adminMaxReqPerMin'))$('adminMaxReqPerMin').value=limits.maxRequestsPerMinute||8;
+    if($('adminLimitsStatusPill')){
+      $('adminLimitsStatusPill').textContent=limits.enabled?'Ativos':'Desativados';
+      $('adminLimitsStatusPill').className=limits.enabled?'pill ok':'pill';
+    }
+
+    if($('adminTotalGensToday'))$('adminTotalGensToday').textContent=data.totals?.generationsToday||0;
+    if($('adminTotalCharsToday'))$('adminTotalCharsToday').textContent=(data.totals?.charsToday||0).toLocaleString('pt-BR');
+    if($('adminActiveUsersToday'))$('adminActiveUsersToday').textContent=data.totals?.activeUsersToday||0;
+
+    const tbody=$('adminUsersTableBody');
+    if(tbody){
+      const users=data.users||[];
+      if(!users.length){
+        tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:14px;color:var(--muted)">Nenhum consumo registrado hoje ainda.</td></tr>';
+      }else{
+        tbody.innerHTML=users.map(u=>`
+          <tr>
+            <td>
+              <b style="color:#fff;font-size:12px;display:block">${esc(u.email||u.name||u.userId.slice(0,16))}</b>
+              <span class="hint" style="font-size:10px">${esc(u.userId)}</span>
+            </td>
+            <td><span class="pill ok" style="font-size:11px">${u.generations} gens</span></td>
+            <td><span class="pill" style="font-size:11px">${(u.chars||0).toLocaleString('pt-BR')} carac.</span></td>
+            <td>
+              <button type="button" class="btn secondary small" data-reset-user="${esc(u.userId)}" style="padding:2px 8px;min-height:26px;font-size:11px">Zerar Cota</button>
+            </td>
+          </tr>
+        `).join('');
+
+        tbody.querySelectorAll('[data-reset-user]').forEach(btn=>{
+          btn.onclick=async()=>{
+            const uid=btn.dataset.resetUser;
+            const r=await fetch('/api/vault/admin/reset-user',{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({pin:db.settings.pin,userId:uid})
+            });
+            const d=await r.json();
+            if(d.ok){
+              toast(d.message);
+              loadAdminVaultData();
+            }else{
+              toast(d.error||'Erro ao zerar cota');
+            }
+          };
+        });
+      }
+    }
+  }catch(err){
+    console.warn('loadAdminVaultData error:',err);
+  }
+}
+
+if($('addServerVaultKeyBtn')){
+  $('addServerVaultKeyBtn').onclick=async()=>{
+    const name=$('vaultNewKeyName')?$('vaultNewKeyName').value.trim():'';
+    const key=$('vaultNewKeyValue')?$('vaultNewKeyValue').value.trim():'';
+    if(!key||key.length<8)return toast('Insira uma chave Gemini válida.');
+    try{
+      const res=await fetch('/api/vault/keys',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({pin:db.settings.pin,name:name||'Chave do Cofre',key})
+      });
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||'Erro ao adicionar chave ao cofre');
+      if($('vaultNewKeyName'))$('vaultNewKeyName').value='';
+      if($('vaultNewKeyValue'))$('vaultNewKeyValue').value='';
+      toast(data.message||'Chave guardada com segurança no cofre do servidor!');
+      loadAdminVaultData();
+    }catch(e){
+      toast(e.message);
+    }
+  };
+}
+
+if($('saveAdminLimitsBtn')){
+  $('saveAdminLimitsBtn').onclick=async()=>{
+    const enabled=$('adminLimitsToggle')?$('adminLimitsToggle').checked:true;
+    const maxDailyGenerations=$('adminMaxDailyGens')?Number($('adminMaxDailyGens').value):30;
+    const maxDailyChars=$('adminMaxDailyChars')?Number($('adminMaxDailyChars').value):30000;
+    const maxCharsPerRequest=$('adminMaxCharsPerReq')?Number($('adminMaxCharsPerReq').value):4000;
+    const maxRequestsPerMinute=$('adminMaxReqPerMin')?Number($('adminMaxReqPerMin').value):8;
+    try{
+      const res=await fetch('/api/vault/admin/limits',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          pin:db.settings.pin,
+          enabled,
+          maxDailyGenerations,
+          maxDailyChars,
+          maxCharsPerRequest,
+          maxRequestsPerMinute
+        })
+      });
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||'Erro ao salvar limites');
+      toast(data.message||'Limites de usuários salvos no servidor!');
+      loadAdminVaultData();
+    }catch(e){
+      toast(e.message);
+    }
+  };
+}
+
+if($('refreshAdminStatsBtn')){
+  $('refreshAdminStatsBtn').onclick=()=>{
+    haptic(10);
+    loadAdminVaultData();
+    toast('Dados e estatísticas do cofre atualizados.');
+  };
+}
 function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 let currentPlaybackSpeed=1.0;
 function estimateDurationSec(charCount, speed=1.0){
@@ -1149,9 +1703,58 @@ if($('chunkSizeSelect'))$('chunkSizeSelect').onchange=updateTextSplitting;
 if($('toggleBlocksPreviewBtn')){$('toggleBlocksPreviewBtn').onclick=()=>{const panel=$('blocksPreviewPanel');if(!panel)return;const isHidden=panel.classList.contains('hidden');panel.classList.toggle('hidden',!isHidden);const count=$('blocksBadgeCount')?.textContent||'1';$('toggleBlocksPreviewBtn').textContent=isHidden?`Ocultar blocos (${count}) ▴`:`Ver blocos (${count}) ▾`}}
 $('clearStudio').onclick=()=>{$('textInput').value='';$('directionInput').value='Fale naturalmente, com dicção clara.';updateSpeedUI(1.0);$('playerBox').classList.add('hidden');if($('generationStatus'))$('generationStatus').classList.add('hidden');updateTextSplitting()};
 $('saveKeyBtn').onclick=()=>{const name=$('keyName').value.trim()||'Projeto Gemini';const value=$('keyValue').value.trim();if(value.length<10)return toast('Cole uma chave Gemini válida.');if(!$('keyConsent').checked)return toast('Confirme o armazenamento local da chave.');db.keys.forEach(k=>k.active=false);db.keys.push({id:crypto.randomUUID(),name,value,active:true,at:new Date().toISOString()});$('keyName').value='';$('keyValue').value='';$('keyConsent').checked=false;event('key_added',name);renderKeys();toast('Chave salva neste dispositivo')};
-function callGemini(body,key){if(window.AndroidGemini&&window.AndroidGemini.generate){return new Promise((resolve,reject)=>{const id='native_'+Date.now()+'_'+Math.random().toString(36).slice(2);window[id]=(payload)=>{delete window[id];try{const x=JSON.parse(payload);if(x.error)reject(new Error(x.error));else resolve({ok:x.ok!==false,data:x.data})}catch(e){reject(e)}};window.AndroidGemini.generate(JSON.stringify(body),key,'window.'+id)})}const headers={'Content-Type':'application/json'};if(key)headers['x-goog-api-key']=key;return fetch('/api/interactions',{method:'POST',headers,body:JSON.stringify(body)}).then(async res=>({ok:res.ok,data:JSON.parse(await res.text())}))}
+function callGemini(body,key){
+  if(window.AndroidGemini&&window.AndroidGemini.generate){
+    return new Promise((resolve,reject)=>{
+      const id='native_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      window[id]=(payload)=>{
+        delete window[id];
+        try{
+          const x=JSON.parse(payload);
+          if(x.error)reject(new Error(x.error));
+          else resolve({ok:x.ok!==false,data:x.data});
+        }catch(e){reject(e)}
+      };
+      window.AndroidGemini.generate(JSON.stringify(body),key,'window.'+id);
+    });
+  }
+  const headers={'Content-Type':'application/json'};
+  if(db.clientId)headers['x-client-id']=db.clientId;
+  if(currentGoogleDriveUser){
+    if(currentGoogleDriveUser.email)headers['x-user-email']=currentGoogleDriveUser.email;
+    if(currentGoogleDriveUser.displayName)headers['x-user-name']=currentGoogleDriveUser.displayName;
+  }
+  const authMode=db.settings.authMode||'vault';
+  if(authMode==='vault'){
+    headers['x-use-vault']='true';
+  }else if(key){
+    headers['x-goog-api-key']=key;
+    headers['x-use-vault']='false';
+  }
+  return fetch('/api/interactions',{method:'POST',headers,body:JSON.stringify(body)}).then(async res=>({ok:res.ok,status:res.status,data:JSON.parse(await res.text())}));
+}
 function createProceduralCover(opts={}){const title=(opts.title||'Narração').trim();const voice=opts.voice||db.selectedVoice||'Kore';const voiceStyle=opts.voiceStyle||(VOICES.find(v=>v[0]===voice)?.[1]||'Firme');const theme=COVER_THEMES.find(t=>t.id===(opts.themeId||activeCoverTheme))||COVER_THEMES[0];const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');const grad=ctx.createLinearGradient(0,0,512,512);grad.addColorStop(0,theme.bg1);grad.addColorStop(1,theme.bg2);ctx.fillStyle=grad;ctx.fillRect(0,0,512,512);const rad=ctx.createRadialGradient(256,210,10,256,210,250);rad.addColorStop(0,theme.accent1+'44');rad.addColorStop(0.5,theme.accent2+'22');rad.addColorStop(1,'transparent');ctx.fillStyle=rad;ctx.fillRect(0,0,512,512);ctx.fillStyle='#ffffff25';for(let i=0;i<28;i++){const px=(i*47+19)%496+8;const py=(i*83+29)%480+12;const pr=((i%3)+1)*0.9;ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);ctx.fill()}ctx.save();ctx.translate(256,210);ctx.strokeStyle=theme.accent1+'44';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,110,0,Math.PI*2);ctx.stroke();ctx.strokeStyle=theme.accent2+'33';ctx.beginPath();ctx.arc(0,0,85,0,Math.PI*2);ctx.stroke();const numBars=32;const barW=6;const gap=3.5;const totalW=numBars*(barW+gap);const startX=-totalW/2;for(let b=0;b<numBars;b++){const norm=b/(numBars-1);const wave=Math.sin(norm*Math.PI)*Math.sin(norm*4*Math.PI+1.2);const h=22+Math.abs(wave)*115+(b%4===0?16:0);const bx=startX+b*(barW+gap);const bGrad=ctx.createLinearGradient(0,-h/2,0,h/2);bGrad.addColorStop(0,theme.accent1);bGrad.addColorStop(0.5,theme.accent2);bGrad.addColorStop(1,theme.glow);ctx.fillStyle=bGrad;const by=-h/2;if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,barW,h,3);ctx.fill()}else{ctx.fillRect(bx,by,barW,h)}}ctx.restore();ctx.fillStyle=theme.accent2;ctx.font='700 11px system-ui,-apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('VOZFORGE STUDIO • NARRAÇÃO IA',256,44);ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(70,56);ctx.lineTo(442,56);ctx.stroke();ctx.fillStyle='#ffffff';ctx.font='bold 22px system-ui,-apple-system,sans-serif';ctx.textAlign='center';let displayTitle=title;if(displayTitle.length>34)displayTitle=displayTitle.slice(0,32)+'…';ctx.fillText(displayTitle,256,385);ctx.fillStyle='#080d1bd9';const pillW=270;const pillH=34;const pillX=256-pillW/2;const pillY=422;if(ctx.roundRect){ctx.beginPath();ctx.roundRect(pillX,pillY,pillW,pillH,17);ctx.fill();ctx.strokeStyle=theme.accent1+'66';ctx.lineWidth=1;ctx.stroke()}else{ctx.fillRect(pillX,pillY,pillW,pillH)}ctx.fillStyle='#c7d0e8';ctx.font='600 12px system-ui,-apple-system,sans-serif';ctx.textAlign='center';ctx.fillText(`🎙️ VOZ: ${voice.toUpperCase()} (${voiceStyle.toUpperCase()})`,256,444);return canvas.toDataURL('image/png')}
-async function requestAiCover(prompt,title,voice,styleDesc){const key=db.keys.find(k=>k.active)||db.keys[0];const headers={'Content-Type':'application/json'};if(key)headers['x-goog-api-key']=key.value;const res=await fetch('/api/generate-cover',{method:'POST',headers,body:JSON.stringify({prompt,title,voice,style:styleDesc})});const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'Falha na geração de imagem');if(!data.imageUrl)throw new Error('A resposta não contém imagem');return data}
+async function requestAiCover(prompt,title,voice,styleDesc){
+  const authMode=db.settings.authMode||'vault';
+  const key=db.keys.find(k=>k.active)||db.keys[0];
+  const headers={'Content-Type':'application/json'};
+  if(db.clientId)headers['x-client-id']=db.clientId;
+  if(currentGoogleDriveUser){
+    if(currentGoogleDriveUser.email)headers['x-user-email']=currentGoogleDriveUser.email;
+    if(currentGoogleDriveUser.displayName)headers['x-user-name']=currentGoogleDriveUser.displayName;
+  }
+  if(authMode==='vault'){
+    headers['x-use-vault']='true';
+  }else if(key){
+    headers['x-goog-api-key']=key.value;
+    headers['x-use-vault']='false';
+  }
+  const res=await fetch('/api/generate-cover',{method:'POST',headers,body:JSON.stringify({prompt,title,voice,style:styleDesc})});
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.error?.message||data.error||'Falha na geração de imagem');
+  if(!data.imageUrl)throw new Error('A resposta não contém imagem');
+  return data;
+}
 function ensureGenerationCovers(){let changed=false;db.generations.forEach(g=>{if(!g.id){g.id=crypto.randomUUID();changed=true}if(!g.title){g.title=g.text?(g.text.slice(0,45).trim()+(g.text.length>45?'…':'')):`Narração ${g.voice}`;changed=true}if(!g.cover){g.cover=createProceduralCover({title:g.title,text:g.text||'',voice:g.voice,voiceStyle:g.voiceStyle,themeId:g.theme||'cyberpunk'});changed=true}});if(changed)saveDb()}
 function renderGenerations(){ensureGenerationCovers();const box=$('generationsList');if(!box)return;if($('genCountBadge'))$('genCountBadge').textContent=`${db.generations.length} projeto${db.generations.length===1?'':'s'}`;if(!db.generations.length){box.innerHTML='<div class="empty">Nenhum projeto ainda.<br>Gere uma narração acima para criar sua primeira faixa com capa personalizada.</div>';return}box.innerHTML=db.generations.map(g=>`<div class="gen-item" data-gen-id="${g.id}"><div class="gen-thumb" data-view-cover="${g.id}" title="Clique para abrir ou editar a capa"><img src="${g.cover}" alt="Capa" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="gen-meta"><b>${esc(g.title||'Narração')}</b><p>${esc(g.text||'')}</p><div class="tags"><span class="pill ok">🎙️ ${esc(g.voice)}${g.voiceStyle?' ('+esc(g.voiceStyle)+')':''}</span><span class="pill">${g.chars||0} caracteres</span>${g.speed&&g.speed!==1?`<span class="pill ok">⚡ ${g.speed}x</span>`:''}${g.blocksCount&&g.blocksCount>1?`<span class="pill ok">📦 ${g.blocksCount} blocos</span>`:''}<span class="hint">${new Date(g.at).toLocaleDateString('pt-BR')} ${new Date(g.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></div><div class="actions"><button type="button" class="btn ghost small" data-edit-cover="${g.id}" title="Personalizar capa com IA">🎨 Capa</button><button type="button" class="btn secondary small" data-use-gen="${g.id}" title="Carregar no estúdio">▶️ Usar</button><button type="button" class="btn danger small" data-del-gen="${g.id}" title="Excluir projeto">🗑️</button></div></div>`).join('');box.querySelectorAll('[data-view-cover],[data-edit-cover]').forEach(el=>{el.onclick=()=>{const id=el.dataset.viewCover||el.dataset.editCover;openCoverModalForGen(id)}});box.querySelectorAll('[data-use-gen]').forEach(el=>{el.onclick=()=>{const id=el.dataset.useGen;const g=db.generations.find(x=>x.id===id);if(!g)return;$('textInput').value=g.text||'';if(g.speed)updateSpeedUI(g.speed);updateTextSplitting();if(g.profileId&&db.profiles.some(p=>p.id===g.profileId)){db.selectedVoice='clone:'+g.profileId;}else if(g.voice&&g.voice.startsWith('clone:')){db.selectedVoice=g.voice;}else if(g.voiceName&&db.profiles.some(p=>p.name===g.voiceName)){const mp=db.profiles.find(p=>p.name===g.voiceName);db.selectedVoice='clone:'+mp.id;}else if(g.voice&&VOICES.some(v=>v[0]===g.voice)){db.selectedVoice=g.voice;}saveDb();renderVoiceFilters();renderVoices();toast('Texto e voz carregados no estúdio!');window.scrollTo({top:0,behavior:'smooth'})}});box.querySelectorAll('[data-del-gen]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delGen;if(confirm('Deseja excluir este projeto de narração?')){db.generations=db.generations.filter(x=>x.id!==id);saveDb();renderGenerations();renderHomeRecent();toast('Projeto removido')}}})}
 function renderHomeRecent(){const box=$('homeRecentList');if(!box)return;ensureGenerationCovers();const recent=db.generations.slice(0,3);if(!recent.length){box.innerHTML='<div class="empty" style="padding:16px">Nenhum projeto recente ainda. Clique em "Abrir estúdio" para começar.</div>';return}box.innerHTML=recent.map(g=>`<div class="gen-item" data-gen-id="${g.id}"><div class="gen-thumb" data-home-cover="${g.id}" title="Ver capa"><img src="${g.cover}" alt="Capa" referrerpolicy="no-referrer"></div><div class="gen-meta"><b>${esc(g.title||'Narração')}</b><p>${esc(g.text||'')}</p><div class="tags"><span class="pill ok">🎙️ ${esc(g.voice)}</span><span class="hint">${new Date(g.at).toLocaleDateString('pt-BR')}</span></div></div><div class="actions"><button type="button" class="btn secondary small" data-home-open="${g.id}">Abrir</button></div></div>`).join('');box.querySelectorAll('[data-home-cover]').forEach(el=>{el.onclick=()=>openCoverModalForGen(el.dataset.homeCover)});box.querySelectorAll('[data-home-open]').forEach(el=>{el.onclick=()=>{const g=db.generations.find(x=>x.id===el.dataset.homeOpen);if(!g)return;go('studio');$('textInput').value=g.text||'';$('charCount').textContent=(g.text||'').length;if(g.profileId&&db.profiles.some(p=>p.id===g.profileId)){db.selectedVoice='clone:'+g.profileId;}else if(g.voice&&g.voice.startsWith('clone:')){db.selectedVoice=g.voice;}else if(g.voiceName&&db.profiles.some(p=>p.name===g.voiceName)){const mp=db.profiles.find(p=>p.name===g.voiceName);db.selectedVoice='clone:'+mp.id;}else if(g.voice&&VOICES.some(v=>v[0]===g.voice)){db.selectedVoice=g.voice;}saveDb();renderVoiceFilters();renderVoices();$('playerCoverImg').src=g.cover;$('playerProjectTitle').textContent=g.title||'Narração gerada';$('playerBox').classList.remove('hidden');activeCoverGenId=g.id;activeCoverDataUrl=g.cover}})}
@@ -1173,11 +1776,12 @@ function renderPlayerBlocks(blocks){const box=$('playerBlocksList');if(!box)retu
 if($('viewPlayerBlocksBtn')){$('viewPlayerBlocksBtn').onclick=()=>{const box=$('playerBlocksList');if(!box)return;const isHidden=box.classList.contains('hidden');box.classList.toggle('hidden',!isHidden);$('viewPlayerBlocksBtn').textContent=isHidden?`📑 Ocultar blocos concatenados ▴`:`📑 Ver blocos concatenados (${currentGeneratedBlocks.length}) ▾`}}
 async function generate(){
   const text=$('textInput').value.trim();
+  const authMode=db.settings.authMode||'vault';
   const availableKeys=(db.keys&&db.keys.length>0)?db.keys:[];
   let activeKeyIndex=availableKeys.findIndex(k=>k.active);
   if(activeKeyIndex<0)activeKeyIndex=0;
   let currentKey=availableKeys[activeKeyIndex]?availableKeys[activeKeyIndex].value:'';
-  if(!currentKey&&!serverConfig.hasServerKey){toast('Adicione uma chave Gemini antes de gerar.');go('keys');return}
+  if(authMode==='client'&&!currentKey){toast('Adicione uma chave Gemini local ou ative o Cofre do Servidor.');go('keys');return}
   if(!text)return toast('Digite um texto para gerar.');
   if(text.length>Number(db.settings.limit||4000))return toast('O texto excede o limite configurado no painel.');
   const vInfo=getSelectedVoiceInfo();
@@ -1231,18 +1835,22 @@ async function generate(){
           return extractPcmSamples(b64);
         }
 
-        const errMsg=data.error?.message||JSON.stringify(data.error)||'Erro na API';
-        const isQuota=result.data?.error?.code===429||errMsg.includes('quota')||errMsg.includes('429')||errMsg.includes('RESOURCE_EXHAUSTED')||errMsg.includes('Rate limit');
+        const errMsg=data.error?.message||(typeof data.error==='string'?data.error:'Erro na API');
+        const limitType=data.limitType;
+
+        if(limitType==='daily_generations'||limitType==='daily_chars'){
+          throw new Error(errMsg);
+        }
+
+        const isQuota=result.status===429||data.error?.code===429||errMsg.includes('quota')||errMsg.includes('429')||errMsg.includes('RESOURCE_EXHAUSTED')||errMsg.includes('Rate limit')||limitType==='rate_limit';
         if(isQuota){
-          // Tenta chave alternativa se houver mais de uma chave cadastrada
-          if(availableKeys.length>1&&activeKeyIndex+1<availableKeys.length){
+          if(authMode==='client'&&availableKeys.length>1&&activeKeyIndex+1<availableKeys.length){
             activeKeyIndex++;
             currentKey=availableKeys[activeKeyIndex].value;
             toast(`Alternando para chave sobressalente "${availableKeys[activeKeyIndex].name}"...`);
             await new Promise(r=>setTimeout(r,400));
             continue;
           }
-          // Parse do tempo de espera
           let waitSec=10;
           const retryHeaderMatch=errMsg.match(/retry\s+in\s+([\d.]+)\s*s/i)||errMsg.match(/retryAfter.*?([\d.]+)/i);
           if(retryHeaderMatch&&retryHeaderMatch[1]){
@@ -1251,12 +1859,11 @@ async function generate(){
             waitSec=Math.min(65,Math.max(3,Math.ceil(data.retryAfter)));
           }
 
-          // Countdown visual
           const totalWait=waitSec;
           for(let s=waitSec;s>0;s--){
             if(generationAborted)throw new Error('Geração cancelada pelo usuário.');
             const waitPct=Math.round(((totalWait-s)/totalWait)*100);
-            $('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="color:#fbbf24">⏳ Cota do Gemini atingida. Nova tentativa em <b>${s}s</b>...</span><button type="button" class="btn ghost small" id="abortCountdownBtn" style="padding:2px 8px;min-height:26px;font-size:11px">Cancelar</button></div><div class="meter"><i style="width:${waitPct}%;background:#fbbf24"></i></div>`;
+            $('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="color:#fbbf24">⏳ Limite temporário atingido. Nova tentativa em <b>${s}s</b>...</span><button type="button" class="btn ghost small" id="abortCountdownBtn" style="padding:2px 8px;min-height:26px;font-size:11px">Cancelar</button></div><div class="meter"><i style="width:${waitPct}%;background:#fbbf24"></i></div>`;
             const cancelBtn=$('abortCountdownBtn');
             if(cancelBtn)cancelBtn.onclick=()=>{generationAborted=true};
             await new Promise(r=>setTimeout(r,1000));
@@ -1266,7 +1873,7 @@ async function generate(){
         throw new Error(errMsg);
       }catch(err){
         if(err.message==='Geração cancelada pelo usuário.')throw err;
-        if(attempts>=4)throw err;
+        if(attempts>=4||err.message.includes('limite diário')||err.message.includes('caracteres hoje'))throw err;
         await new Promise(r=>setTimeout(r,1500));
       }
     }

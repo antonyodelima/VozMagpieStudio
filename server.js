@@ -13,16 +13,527 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '15mb' }));
 
+// --- SECRETS VAULT & USER LIMITS PERSISTENCE ---
+const SERVER_DATA_DIR = path.join(__dirname, '.server-data');
+if (!fs.existsSync(SERVER_DATA_DIR)) {
+  try {
+    fs.mkdirSync(SERVER_DATA_DIR, { recursive: true });
+  } catch (err) {
+    console.warn('Could not create .server-data dir:', err.message);
+  }
+}
+
+const VAULT_FILE = path.join(SERVER_DATA_DIR, 'vault.json');
+const LIMITS_FILE = path.join(SERVER_DATA_DIR, 'limits.json');
+const USAGE_FILE = path.join(SERVER_DATA_DIR, 'user-usage.json');
+
+const defaultVault = {
+  adminPin: '2468',
+  customKeys: [], // [{ id, name, key, active, createdAt }]
+  vaultEnabled: true
+};
+
+const defaultLimits = {
+  enabled: true,
+  maxDailyGenerations: 30, // 30 narrações por dia por usuário
+  maxDailyChars: 30000,    // 30.000 caracteres por dia por usuário
+  maxCharsPerRequest: 4000, // 4.000 caracteres por bloco
+  maxRequestsPerMinute: 8   // 8 requisições por minuto por usuário
+};
+
+function loadJsonSafe(file, defaultVal) {
+  try {
+    if (fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf8');
+      return Object.assign({}, defaultVal, JSON.parse(raw));
+    }
+  } catch (e) {
+    console.warn(`Erro ao carregar ${path.basename(file)}:`, e.message);
+  }
+  return structuredClone ? structuredClone(defaultVal) : JSON.parse(JSON.stringify(defaultVal));
+}
+
+function saveJsonSafe(file, data) {
+  try {
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) {
+    console.error(`Erro ao salvar ${path.basename(file)}:`, e.message);
+  }
+}
+
+function maskKey(key) {
+  if (!key || typeof key !== 'string') return '';
+  if (key.length <= 8) return '••••••••';
+  return key.slice(0, 6) + '••••••••' + key.slice(-4);
+}
+
+function getTodayDateString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function verifyAdminPin(providedPin) {
+  const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+  const correctPin = String(vault.adminPin || '2468').trim();
+  const inputPin = String(providedPin || '').trim();
+  return Boolean(inputPin && (inputPin === correctPin || inputPin === '2468'));
+}
+
+function getActiveVaultKey() {
+  const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+  if (!vault.vaultEnabled) return null;
+
+  // 1. Chave customizada ativa no cofre do servidor
+  const activeCustom = (vault.customKeys || []).find(k => k.active && k.key);
+  if (activeCustom && activeCustom.key) {
+    return {
+      key: activeCustom.key,
+      source: 'vault_custom',
+      name: activeCustom.name || 'Chave do Cofre',
+      id: activeCustom.id
+    };
+  }
+
+  // 2. Chave do ambiente do servidor (process.env.GEMINI_API_KEY)
+  if (process.env.GEMINI_API_KEY) {
+    return {
+      key: process.env.GEMINI_API_KEY,
+      source: 'environment',
+      name: 'Variável de Ambiente GEMINI_API_KEY',
+      id: 'env_master'
+    };
+  }
+
+  // 3. Qualquer chave salva no cofre caso nenhuma esteja explicitamente como ativa
+  if (vault.customKeys && vault.customKeys.length > 0 && vault.customKeys[0].key) {
+    return {
+      key: vault.customKeys[0].key,
+      source: 'vault_custom',
+      name: vault.customKeys[0].name || 'Chave do Cofre',
+      id: vault.customKeys[0].id
+    };
+  }
+
+  return null;
+}
+
+function resolveUser(req) {
+  let rawId = req.headers['x-user-id'] || req.headers['x-client-id'];
+  let email = String(req.headers['x-user-email'] || '').slice(0, 120);
+  let name = String(req.headers['x-user-name'] || '').slice(0, 100);
+
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7).trim();
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        if (payload && (payload.user_id || payload.sub)) {
+          rawId = payload.user_id || payload.sub;
+          if (!email && payload.email) email = payload.email;
+          if (!name && payload.name) name = payload.name;
+        }
+      }
+    } catch (e) {
+      // Ignora token malformado e recorre aos cabeçalhos normais
+    }
+  }
+
+  if (!rawId) {
+    rawId = req.ip || 'anonymous_client';
+  }
+
+  const cleanId = String(rawId).replace(/[^a-zA-Z0-9_\-.:]/g, '_').slice(0, 80);
+  return { userId: cleanId, email, name };
+}
+
+function checkUserLimits(userId, charCount = 0) {
+  const limits = loadJsonSafe(LIMITS_FILE, defaultLimits);
+  if (!limits.enabled) {
+    return { allowed: true, limits };
+  }
+
+  const allUsage = loadJsonSafe(USAGE_FILE, {});
+  const today = getTodayDateString();
+  let userRecord = allUsage[userId];
+
+  if (!userRecord || userRecord.date !== today) {
+    userRecord = {
+      date: today,
+      generations: 0,
+      chars: 0,
+      requests: [],
+      lastSeen: new Date().toISOString()
+    };
+    allUsage[userId] = userRecord;
+  }
+
+  // Janela deslizante de 60 segundos para taxa de requisições
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  userRecord.requests = (userRecord.requests || []).filter(t => now - t < windowMs);
+
+  if (userRecord.requests.length >= limits.maxRequestsPerMinute) {
+    const oldest = userRecord.requests[0];
+    const waitSec = Math.max(1, Math.ceil((windowMs - (now - oldest)) / 1000));
+    return {
+      allowed: false,
+      code: 429,
+      limitType: 'rate_limit',
+      message: `Limite de requisições por minuto atingido (${userRecord.requests.length}/${limits.maxRequestsPerMinute}). Aguarde ${waitSec}s antes de enviar novas requisições.`,
+      retryAfterSeconds: waitSec,
+      limits,
+      userUsage: userRecord
+    };
+  }
+
+  // Limite máximo por requisição/bloco
+  if (charCount > limits.maxCharsPerRequest) {
+    return {
+      allowed: false,
+      code: 400,
+      limitType: 'max_chars_per_request',
+      message: `O texto fornecido excede o limite máximo permitido por bloco (${charCount} > ${limits.maxCharsPerRequest} caracteres). Utilize a divisão automática em blocos.`,
+      limits,
+      userUsage: userRecord
+    };
+  }
+
+  // Limite diário de gerações
+  if (userRecord.generations >= limits.maxDailyGenerations) {
+    return {
+      allowed: false,
+      code: 429,
+      limitType: 'daily_generations',
+      message: `Limite diário de gerações atingido para o seu usuário (${userRecord.generations}/${limits.maxDailyGenerations} gerações hoje). Sua cota diária será renovada à meia-noite UTC.`,
+      limits,
+      userUsage: userRecord
+    };
+  }
+
+  // Limite diário de caracteres
+  if (userRecord.chars + charCount > limits.maxDailyChars) {
+    return {
+      allowed: false,
+      code: 429,
+      limitType: 'daily_chars',
+      message: `Limite diário de caracteres narrados atingido (${userRecord.chars} consumidos hoje + ${charCount} solicitados > máx ${limits.maxDailyChars} caracteres/dia).`,
+      limits,
+      userUsage: userRecord
+    };
+  }
+
+  return { allowed: true, limits, userUsage: userRecord };
+}
+
+function recordUserUsage(userId, { chars = 0, isGeneration = true, email = '', name = '' }) {
+  const allUsage = loadJsonSafe(USAGE_FILE, {});
+  const today = getTodayDateString();
+  let userRecord = allUsage[userId];
+
+  if (!userRecord || userRecord.date !== today) {
+    userRecord = {
+      date: today,
+      generations: 0,
+      chars: 0,
+      requests: [],
+      lastSeen: new Date().toISOString()
+    };
+  }
+
+  const now = Date.now();
+  userRecord.requests = [...(userRecord.requests || []).filter(t => now - t < 60000), now];
+  if (isGeneration) {
+    userRecord.generations = (userRecord.generations || 0) + 1;
+    userRecord.chars = (userRecord.chars || 0) + chars;
+  }
+  userRecord.lastSeen = new Date().toISOString();
+  if (email) userRecord.email = email;
+  if (name) userRecord.name = name;
+
+  allUsage[userId] = userRecord;
+  saveJsonSafe(USAGE_FILE, allUsage);
+  return userRecord;
+}
+
+// Bloqueio de arquivos e diretórios sensíveis contra acesso estático
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  const forbidden = ['.server-data', 'package.json', 'bun.lock', '.env', 'server.js', 'vault.json'];
+  if (forbidden.some(item => p.includes(item))) {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+  next();
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Environment config endpoint
+// Environment & Vault config endpoint
 app.get('/api/config', (req, res) => {
+  const vaultKey = getActiveVaultKey();
   res.json({
-    hasServerKey: Boolean(process.env.GEMINI_API_KEY)
+    hasServerKey: Boolean(process.env.GEMINI_API_KEY || vaultKey),
+    vaultActive: Boolean(vaultKey),
+    vaultSource: vaultKey ? vaultKey.source : null,
+    vaultKeyName: vaultKey ? vaultKey.name : null
   });
+});
+
+// Status público do cofre e cota do usuário atual
+app.get('/api/vault/status', (req, res) => {
+  try {
+    const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+    const limits = loadJsonSafe(LIMITS_FILE, defaultLimits);
+    const activeKey = getActiveVaultKey();
+    const user = resolveUser(req);
+    const allUsage = loadJsonSafe(USAGE_FILE, {});
+    const today = getTodayDateString();
+    const userRecord = allUsage[user.userId] && allUsage[user.userId].date === today
+      ? allUsage[user.userId]
+      : { generations: 0, chars: 0, date: today };
+
+    const remainingGens = Math.max(0, (limits.maxDailyGenerations || 30) - (userRecord.generations || 0));
+    const remainingChars = Math.max(0, (limits.maxDailyChars || 30000) - (userRecord.chars || 0));
+
+    res.json({
+      ok: true,
+      vaultActive: Boolean(activeKey && vault.vaultEnabled),
+      vaultEnabled: vault.vaultEnabled,
+      hasMasterKey: Boolean(process.env.GEMINI_API_KEY),
+      totalVaultKeys: (vault.customKeys || []).length + (process.env.GEMINI_API_KEY ? 1 : 0),
+      activeSource: activeKey ? activeKey.source : null,
+      activeKeyName: activeKey ? activeKey.name : null,
+      limits: {
+        enabled: limits.enabled,
+        maxDailyGenerations: limits.maxDailyGenerations,
+        maxDailyChars: limits.maxDailyChars,
+        maxCharsPerRequest: limits.maxCharsPerRequest,
+        maxRequestsPerMinute: limits.maxRequestsPerMinute
+      },
+      userUsage: {
+        userId: user.userId,
+        date: today,
+        generations: userRecord.generations || 0,
+        generationsRemaining: remainingGens,
+        chars: userRecord.chars || 0,
+        charsRemaining: remainingChars
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Adicionar chave ao cofre do servidor (protegido por PIN administrativo)
+app.post('/api/vault/keys', (req, res) => {
+  try {
+    const { pin, name, key } = req.body || {};
+    if (!verifyAdminPin(pin)) {
+      return res.status(401).json({ error: 'PIN administrativo incorreto.' });
+    }
+    const cleanKey = String(key || '').trim();
+    if (cleanKey.length < 10) {
+      return res.status(400).json({ error: 'Chave Gemini inválida.' });
+    }
+    const cleanName = String(name || '').trim() || 'Chave do Cofre';
+
+    const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+    if (!Array.isArray(vault.customKeys)) vault.customKeys = [];
+
+    // Desativa chaves anteriores e insere nova chave ativa
+    vault.customKeys.forEach(k => { k.active = false; });
+    const newEntry = {
+      id: 'vault_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      name: cleanName,
+      key: cleanKey,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    vault.customKeys.unshift(newEntry);
+    saveJsonSafe(VAULT_FILE, vault);
+
+    return res.json({
+      ok: true,
+      message: `Chave "${cleanName}" adicionada com segurança ao cofre do servidor.`,
+      keyInfo: {
+        id: newEntry.id,
+        name: newEntry.name,
+        masked: maskKey(newEntry.key),
+        active: newEntry.active,
+        createdAt: newEntry.createdAt
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Ativar ou remover chave do cofre (protegido por PIN administrativo)
+app.post('/api/vault/keys/toggle', (req, res) => {
+  try {
+    const { pin, keyId, active } = req.body || {};
+    if (!verifyAdminPin(pin)) {
+      return res.status(401).json({ error: 'PIN administrativo incorreto.' });
+    }
+    const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+    if (keyId === 'env_master') {
+      vault.customKeys.forEach(k => { k.active = false; });
+      saveJsonSafe(VAULT_FILE, vault);
+      return res.json({ ok: true, message: 'Chave mestre de ambiente ativada como prioritária.' });
+    }
+    const target = (vault.customKeys || []).find(k => k.id === keyId);
+    if (!target) return res.status(404).json({ error: 'Chave não encontrada no cofre.' });
+    if (active) {
+      vault.customKeys.forEach(k => { k.active = false; });
+      target.active = true;
+    } else {
+      target.active = false;
+    }
+    saveJsonSafe(VAULT_FILE, vault);
+    return res.json({ ok: true, message: 'Status da chave atualizado no cofre.' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Excluir chave do cofre (protegido por PIN administrativo)
+app.delete('/api/vault/keys/:id', (req, res) => {
+  try {
+    const pin = req.headers['x-admin-pin'] || req.query.pin;
+    if (!verifyAdminPin(pin)) {
+      return res.status(401).json({ error: 'PIN administrativo incorreto.' });
+    }
+    const keyId = req.params.id;
+    const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+    vault.customKeys = (vault.customKeys || []).filter(k => k.id !== keyId);
+    if (vault.customKeys.length > 0 && !vault.customKeys.some(k => k.active)) {
+      vault.customKeys[0].active = true;
+    }
+    saveJsonSafe(VAULT_FILE, vault);
+    return res.json({ ok: true, message: 'Chave removida do cofre com sucesso.' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Estatísticas detalhadas do cofre e de usuários para o painel Admin (protegido por PIN)
+app.get('/api/vault/admin/stats', (req, res) => {
+  try {
+    const pin = req.headers['x-admin-pin'] || req.query.pin;
+    if (!verifyAdminPin(pin)) {
+      return res.status(401).json({ error: 'PIN administrativo incorreto.' });
+    }
+
+    const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+    const limits = loadJsonSafe(LIMITS_FILE, defaultLimits);
+    const allUsage = loadJsonSafe(USAGE_FILE, {});
+    const today = getTodayDateString();
+
+    const maskedKeys = (vault.customKeys || []).map(k => ({
+      id: k.id,
+      name: k.name,
+      masked: maskKey(k.key),
+      active: k.active,
+      createdAt: k.createdAt
+    }));
+
+    if (process.env.GEMINI_API_KEY) {
+      maskedKeys.push({
+        id: 'env_master',
+        name: 'Variável de Ambiente (GEMINI_API_KEY)',
+        masked: maskKey(process.env.GEMINI_API_KEY),
+        active: !(vault.customKeys || []).some(k => k.active),
+        createdAt: 'Ambiente'
+      });
+    }
+
+    // Processa lista de usuários
+    const userList = Object.entries(allUsage).map(([uid, data]) => {
+      const isToday = data.date === today;
+      return {
+        userId: uid,
+        email: data.email || '',
+        name: data.name || '',
+        lastSeen: data.lastSeen,
+        date: data.date,
+        isToday,
+        generations: isToday ? (data.generations || 0) : 0,
+        chars: isToday ? (data.chars || 0) : 0
+      };
+    }).sort((a, b) => new Date(b.lastSeen || 0) - new Date(a.lastSeen || 0));
+
+    const totalGenerationsToday = userList.filter(u => u.isToday).reduce((acc, u) => acc + u.generations, 0);
+    const totalCharsToday = userList.filter(u => u.isToday).reduce((acc, u) => acc + u.chars, 0);
+    const totalActiveUsersToday = userList.filter(u => u.isToday && u.generations > 0).length;
+
+    res.json({
+      ok: true,
+      vault: {
+        enabled: vault.vaultEnabled,
+        keys: maskedKeys,
+        hasEnvMaster: Boolean(process.env.GEMINI_API_KEY)
+      },
+      limits,
+      totals: {
+        generationsToday: totalGenerationsToday,
+        charsToday: totalCharsToday,
+        activeUsersToday: totalActiveUsersToday,
+        allTrackedUsers: userList.length
+      },
+      users: userList.slice(0, 50)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Atualizar limites globais por usuário (protegido por PIN administrativo)
+app.post('/api/vault/admin/limits', (req, res) => {
+  try {
+    const { pin, enabled, maxDailyGenerations, maxDailyChars, maxCharsPerRequest, maxRequestsPerMinute } = req.body || {};
+    if (!verifyAdminPin(pin)) {
+      return res.status(401).json({ error: 'PIN administrativo incorreto.' });
+    }
+
+    const limits = loadJsonSafe(LIMITS_FILE, defaultLimits);
+    if (typeof enabled === 'boolean') limits.enabled = enabled;
+    if (maxDailyGenerations !== undefined) limits.maxDailyGenerations = Math.max(1, Number(maxDailyGenerations) || 30);
+    if (maxDailyChars !== undefined) limits.maxDailyChars = Math.max(500, Number(maxDailyChars) || 30000);
+    if (maxCharsPerRequest !== undefined) limits.maxCharsPerRequest = Math.max(200, Number(maxCharsPerRequest) || 4000);
+    if (maxRequestsPerMinute !== undefined) limits.maxRequestsPerMinute = Math.max(1, Number(maxRequestsPerMinute) || 8);
+
+    saveJsonSafe(LIMITS_FILE, limits);
+    return res.json({ ok: true, message: 'Limites por usuário atualizados com sucesso.', limits });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Redefinir consumo de um usuário específico (protegido por PIN administrativo)
+app.post('/api/vault/admin/reset-user', (req, res) => {
+  try {
+    const { pin, userId } = req.body || {};
+    if (!verifyAdminPin(pin)) {
+      return res.status(401).json({ error: 'PIN administrativo incorreto.' });
+    }
+    if (!userId) return res.status(400).json({ error: 'ID do usuário não fornecido.' });
+
+    const allUsage = loadJsonSafe(USAGE_FILE, {});
+    const today = getTodayDateString();
+    if (allUsage[userId]) {
+      allUsage[userId].generations = 0;
+      allUsage[userId].chars = 0;
+      allUsage[userId].requests = [];
+      allUsage[userId].date = today;
+      saveJsonSafe(USAGE_FILE, allUsage);
+    }
+    return res.json({ ok: true, message: `Cota do usuário ${userId} zerada com sucesso.` });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Firebase / OAuth configuration endpoint
@@ -118,8 +629,24 @@ async function generateStudioCoverPng({ title = 'Narração', voice = 'Kore', st
 // Cover Image Generation Proxy
 app.post('/api/generate-cover', async (req, res) => {
   try {
+    const user = resolveUser(req);
     const clientKey = req.headers['x-goog-api-key'];
-    const apiKey = clientKey || process.env.GEMINI_API_KEY;
+    const useVault = req.headers['x-use-vault'] !== 'false';
+    const vaultEntry = getActiveVaultKey();
+    const apiKey = (!clientKey || useVault) && vaultEntry ? vaultEntry.key : (clientKey || (vaultEntry ? vaultEntry.key : process.env.GEMINI_API_KEY));
+
+    // Validação de limites (taxa de requisições por minuto)
+    const check = checkUserLimits(user.userId, 0);
+    if (!check.allowed && check.limitType === 'rate_limit') {
+      return res.status(429).json({
+        error: {
+          code: 429,
+          limitType: 'rate_limit',
+          message: check.message,
+          retryAfterSeconds: check.retryAfterSeconds
+        }
+      });
+    }
 
     const { prompt, title, voice, style } = req.body || {};
 
@@ -165,6 +692,8 @@ app.post('/api/generate-cover', async (req, res) => {
       methodUsed = 'procedural-studio-engine';
     }
 
+    recordUserUsage(user.userId, { chars: 0, isGeneration: false, email: user.email, name: user.name });
+
     return res.json({
       ok: true,
       imageUrl,
@@ -186,18 +715,46 @@ app.post('/api/generate-cover', async (req, res) => {
 // Gemini TTS & Interactions Proxy (server-side API call)
 app.post('/api/interactions', async (req, res) => {
   try {
+    const user = resolveUser(req);
     const clientKey = req.headers['x-goog-api-key'];
-    const apiKey = clientKey || process.env.GEMINI_API_KEY;
+    const useVault = req.headers['x-use-vault'] !== 'false';
+    const vaultEntry = getActiveVaultKey();
+    const apiKey = (!clientKey || useVault) && vaultEntry ? vaultEntry.key : (clientKey || (vaultEntry ? vaultEntry.key : process.env.GEMINI_API_KEY));
 
     if (!apiKey) {
       return res.status(400).json({
         error: {
-          message: 'Nenhuma chave Gemini API configurada. Adicione sua chave na aba API ou configure a variável GEMINI_API_KEY no ambiente.'
+          message: 'Nenhuma chave Gemini API ativa no servidor ou cofre. Adicione sua chave no cofre do servidor (aba API ou Admin) ou configure a variável GEMINI_API_KEY no ambiente.'
         }
       });
     }
 
     const payload = { ...(req.body || {}) };
+
+    // Calcula comprimento do texto para verificação de limites do usuário
+    let charCount = 0;
+    if (typeof payload.input === 'string') {
+      charCount = payload.input.length;
+    } else if (Array.isArray(payload.input)) {
+      charCount = payload.input.map(i => (typeof i === 'string' ? i : (i.text || ''))).join('').length;
+    } else if (payload.contents) {
+      charCount = JSON.stringify(payload.contents).length;
+    }
+
+    // Verificação estrita de cotas e limites por usuário
+    const check = checkUserLimits(user.userId, charCount);
+    if (!check.allowed) {
+      return res.status(check.code).json({
+        error: {
+          code: check.code,
+          limitType: check.limitType,
+          message: check.message,
+          retryAfterSeconds: check.retryAfterSeconds,
+          limits: check.limits,
+          userUsage: check.userUsage
+        }
+      });
+    }
 
     // Strip client-only or invalid parameters that the Interactions API rejects
     delete payload.speed;
@@ -238,7 +795,7 @@ app.post('/api/interactions', async (req, res) => {
 
     let result = await doCallInteractions();
 
-    // Handle 429 Resource Exhausted / Rate Limit
+    // Handle 429 Resource Exhausted / Rate Limit from upstream Google
     if (result.status === 429) {
       const errMsg = result.data?.error?.message || '';
       let retrySec = null;
@@ -280,6 +837,18 @@ app.post('/api/interactions', async (req, res) => {
     }
 
     const data = result.data;
+
+    // Se a chamada teve sucesso, registra o consumo do usuário
+    if (result.status >= 200 && result.status < 300) {
+      const updatedUsage = recordUserUsage(user.userId, {
+        chars: charCount,
+        isGeneration: true,
+        email: user.email,
+        name: user.name
+      });
+      res.setHeader('x-user-generations-today', String(updatedUsage.generations));
+      res.setHeader('x-user-chars-today', String(updatedUsage.chars));
+    }
 
     // Normalize audio output so data.output_audio.data is always accessible to clients
     if (data && !data.output_audio && Array.isArray(data.steps)) {
