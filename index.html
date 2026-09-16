@@ -14,11 +14,19 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="description" content="Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS">
+<meta name="description" content="Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS, com clonagem de vozes e sincronização remota via Google Drive">
 <meta property="og:title" content="VozForge Studio">
-<meta property="og:description" content="Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS">
+<meta property="og:description" content="Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS, com clonagem de vozes e sincronização remota via Google Drive">
 <meta property="og:image" content="/icon-512.png">
 <title>VozForge Studio</title>
+<script src="/vendor/lame.min.js"></script>
+<script>
+if (typeof lamejs === 'undefined') {
+  var _lameFallback = document.createElement('script');
+  _lameFallback.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+  document.head.appendChild(_lameFallback);
+}
+</script>
 <script>
 (function(){
   try {
@@ -39,10 +47,10 @@
 :root{--bg:#080d1b;--surface:#111a2d;--surface2:#17223a;--line:#263452;--text:#f5f7ff;--muted:#a9b4cf;--primary:#8b5cf6;--primary2:#6d28d9;--cyan:#38bdf8;--ok:#34d399;--warn:#fbbf24;--danger:#fb7185}
 *{box-sizing:border-box}
 html{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-text-size-adjust:100%;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
-body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:inherit;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);overflow-x:clip;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:inherit;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:auto}
 button,input,select,.btn,.nav{font:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 textarea{font:inherit;touch-action:pan-y;-webkit-overflow-scrolling:touch}
-.voice,.item,.gen-item,.card{font:inherit;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+.voice,.item,.gen-item,.card{font:inherit;-webkit-tap-highlight-color:transparent}
 button{cursor:pointer;border:0;color:var(--text)}
 .hidden{display:none!important}
 .app{max-width:920px;margin:0 auto;width:100%}
@@ -100,7 +108,18 @@ h3{font-size:16px;margin:0 0 10px}
 .voice.selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;background:#151c33}
 .voice b{display:block;font-size:14px}
 .voice span{color:var(--muted);font-size:12px}
+.voice-clone-card{background:linear-gradient(135deg,#130e28,#0c1328);border-color:#8b5cf666}
+.voice-clone-card:hover{border-color:#a78bfa}
+.voice-clone-card.selected{border-color:#38bdf8 !important;background:linear-gradient(135deg,#231448,#0e1e3c) !important;box-shadow:0 0 16px #8b5cf655,0 0 0 1px #38bdf8 inset !important}
+.voice-action-btn{background:#182238;border:1px solid #2d3e63;color:#e2e8f0;border-radius:8px;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .15s ease;flex-shrink:0;user-select:none;touch-action:manipulation}
+.voice-action-btn:hover{background:#233352;border-color:#475569;transform:scale(1.06);color:#fff}
+.voice-action-btn:active{transform:scale(.92)}
+.voice-action-btn.del{color:#fda4af;border-color:#f43f5e33}
+.voice-action-btn.del:hover{background:#f43f5e22;border-color:#f43f5e;color:#fff}
+.voice-action-btn.playing{background:#8b5cf633;border-color:#8b5cf6;color:#d8b4fe;box-shadow:0 0 0 2px #8b5cf655;animation:pulsePreview 1.4s infinite}
+@keyframes pulsePreview{0%,100%{box-shadow:0 0 0 2px #8b5cf666}50%{box-shadow:0 0 0 5px #8b5cf622}}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 5px #8b5cf622;flex:none}
+.voice:not(.selected) .dot{background:#25324d;box-shadow:none}
 .list{display:grid;gap:10px}
 .item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .item-main{min-width:0;flex:1}
@@ -144,18 +163,18 @@ h3{font-size:16px;margin:0 0 10px}
 .table{width:100%;border-collapse:collapse;font-size:12px}
 .table td{padding:9px 0;border-bottom:1px solid #ffffff0d}
 .table td:last-child{text-align:right;color:var(--muted)}
-.table-wrap{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior-x:contain;overscroll-behavior-y:contain;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#314269 transparent;margin-top:8px;border-radius:8px}
+.table-wrap{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain;overscroll-behavior-y:contain !important;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#314269 transparent;margin-top:8px;border-radius:8px}
 .table-wrap::-webkit-scrollbar{height:6px}
 .table-wrap::-webkit-scrollbar-thumb{background:#2b3a5b;border-radius:99px}
 .chip-bar-wrap{position:relative;display:flex;align-items:center;gap:6px;width:100%}
-.chip-bar{display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;padding:4px 3px 8px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior-x:contain;overscroll-behavior-y:contain;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#314269 transparent;flex:1;min-width:0;cursor:grab}
-.modal, .modal-box, .chip-bar, .table-wrap, #blocksPreviewList, #playerBlocksList{overscroll-behavior-y:contain !important;overscroll-behavior:contain}
+.chip-bar{display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;padding:4px 3px 8px;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain;overscroll-behavior-y:contain !important;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#314269 transparent;flex:1;min-width:0;cursor:grab}
+.modal, .modal-box, .chip-bar, .chip-bar-wrap, .table-wrap, #blocksPreviewList, #playerBlocksList, #voiceFilterChips, #speedPresetsChips, #coverThemeChips, #generationsList, #homeRecentList, #profilesList, #keysList, .voice-list{overscroll-behavior-y:contain !important;overscroll-behavior-x:contain;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .chip-bar:active{cursor:grabbing}
 .chip-bar::-webkit-scrollbar{height:6px}
 .chip-bar::-webkit-scrollbar-track{background:#0b1223;border-radius:99px}
 .chip-bar::-webkit-scrollbar-thumb{background:#2b3a5b;border-radius:99px}
 .chip-bar::-webkit-scrollbar-thumb:hover{background:var(--primary)}
-.chip{background:#0b1223;border:1px solid var(--line);color:#c7d0e8;border-radius:999px;padding:7px 13px;min-height:36px;font-size:12px;font-weight:600;white-space:nowrap;transition:.15s;flex:none;display:inline-flex;align-items:center;cursor:pointer;touch-action:pan-x pan-y;user-select:none}
+.chip{background:#0b1223;border:1px solid var(--line);color:#c7d0e8;border-radius:999px;padding:7px 13px;min-height:36px;font-size:12px;font-weight:600;white-space:nowrap;transition:.15s;flex:none;display:inline-flex;align-items:center;cursor:pointer;touch-action:manipulation;user-select:none}
 .chip-nav-btn{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:#cdd6eb;display:inline-grid;place-items:center;flex-shrink:0;cursor:pointer;font-size:16px;line-height:1;transition:all .15s ease;user-select:none}
 .chip-nav-btn:hover{background:#8b5cf622;border-color:var(--primary);color:#fff}
 .chip-nav-btn:active{transform:scale(.92)}
@@ -245,6 +264,28 @@ h3{font-size:16px;margin:0 0 10px}
   #installModal .actions .btn{width:100%;min-height:44px}
   #adminPanel .actions{display:flex;flex-direction:column;gap:8px;width:100%}
   #adminPanel .actions .btn{width:100%;min-height:44px}
+  #driveSyncSection .actions{display:flex;gap:8px;flex-wrap:wrap}
+  #driveSyncSection .actions .btn{flex:1;min-height:42px}
+  /* Google Sign-in Button Styles */
+  .gsi-material-button{
+    -moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-appearance:none;
+    background-color:#131314;background-image:none;border:1px solid #747775;border-radius:20px;
+    box-sizing:border-box;color:#e3e3e3;cursor:pointer;font-family:inherit;font-size:14px;
+    height:42px;letter-spacing:0.25px;outline:none;overflow:hidden;padding:0 16px;position:relative;
+    text-align:center;transition:background-color .218s,border-color .218s,box-shadow .218s;
+    vertical-align:middle;white-space:nowrap;width:auto;max-width:320px;min-width:min-content;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .gsi-material-button .gsi-material-button-icon{height:20px;margin-right:12px;min-width:20px;width:20px}
+  .gsi-material-button .gsi-material-button-content-wrapper{align-items:center;display:flex;flex-direction:row;flex-wrap:nowrap;height:100%;justify-content:space-between;position:relative;width:100%}
+  .gsi-material-button .gsi-material-button-contents{flex-grow:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+  .gsi-material-button .gsi-material-button-state{transition:opacity .218s;bottom:0;left:0;opacity:0;position:absolute;right:0;top:0}
+  .gsi-material-button:disabled{cursor:default;background-color:#13131466;border-color:#8e918f1f}
+  .gsi-material-button:disabled .gsi-material-button-contents{opacity:38%}
+  .gsi-material-button:disabled .gsi-material-button-icon{opacity:38%}
+  .gsi-material-button:not(:disabled):active .gsi-material-button-state,
+  .gsi-material-button:not(:disabled):focus .gsi-material-button-state{background-color:#ffffff;opacity:12%}
+  .gsi-material-button:not(:disabled):hover{box-shadow:0 1px 2px 0 rgba(60,64,67,.30),0 1px 3px 1px rgba(60,64,67,.15);background-color:#202124;border-color:#8b5cf6}
 }
 @media(max-width:380px){
   .hero .actions{grid-template-columns:1fr}
@@ -261,17 +302,239 @@ h3{font-size:16px;margin:0 0 10px}
 <header class="top"><div class="topline"><div class="brand"><button type="button" class="icon-btn back-btn hidden" id="backNavBtn" title="Voltar para a página anterior" aria-label="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button><div class="mark"><div class="wave"><i></i><i></i><i></i><i></i><i></i></div></div><div><h1>VozForge Studio</h1><small>Estúdio de voz com IA</small></div></div><div class="top-actions"><button type="button" class="btn ghost small hidden" id="installPwaBtn" style="border-color:var(--primary);color:#d9ccff;gap:6px" title="Instalar aplicativo no Android">📲 <span class="install-text">Instalar</span></button><span class="badge" id="statusBadge">online</span><button class="icon-btn" id="settingsBtn" title="Configurações">⚙</button></div></div></header>
 <main class="app content">
 <section class="screen" data-screen="home"><div class="hero"><h2>Transforme texto em uma voz natural.</h2><p>Crie narrações, protótipos e audiolivros com as vozes TTS do Gemini. Clone sua própria voz com fidelidade ultra-realista ou suba uma gravação limpa da sua voz.</p><div class="actions"><button class="btn primary" id="homeHeroCloneBtn">🎙️ Clonar minha voz</button><label class="btn secondary" for="homeAudioFileInput" id="homeHeroUploadBtn" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📤 Subir áudio da voz</label><button class="btn ghost" data-go="studio">Estúdio</button><button class="btn ghost" data-go="voices">Meus perfis</button></div></div><div class="section voice-clone-hero card" style="background:radial-gradient(circle at 88% 12%,#8b5cf635,transparent 55%),linear-gradient(135deg,#0d162d,#090e1e);border:1px solid #8b5cf655;padding:18px;border-radius:18px;box-shadow:0 8px 30px #00000044"><div class="row" style="margin-bottom:8px"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h3 style="margin:0;font-size:16px;color:#fff">🧬 Clonagem de Voz Ultra-Realista</h3><span class="pill ok" style="font-size:10px;padding:2px 7px">Fidelidade Acústica</span></div><p class="hint" style="margin:0;font-size:12.5px;color:#cdd6eb;line-height:1.45">Grave sua própria voz no microfone ou envie um áudio limpo da sua voz para criar seu perfil vocal ultra-realista e usar nas narrações.</p></div></div><div class="shortcuts-grid" style="margin-top:12px"><button type="button" class="card secondary shortcut-btn" id="homeCardCloneMicBtn" style="text-align:left;background:#121b35;border-color:#8b5cf666;cursor:pointer;padding:14px"><div class="row" style="margin:0 0 4px"><b style="font-size:13.5px;color:#fff">🎙️ Clonar Minha Própria Voz</b><span class="pill ok" style="font-size:10.5px">Microfone</span></div><div class="hint" style="font-size:11.5px;color:#c7d0e8">Grave de 10 a 30 segundos com dicção clara para sintetizar sua voz</div></button><label class="card secondary shortcut-btn" for="homeAudioFileInput" id="homeCardUploadAudioBtn" style="text-align:left;background:#121b35;border-color:#38bdf855;cursor:pointer;padding:14px"><div class="row" style="margin:0 0 4px"><b style="font-size:13.5px;color:#fff">📤 Subir Áudio da Minha Voz</b><span class="pill" style="font-size:10.5px;border-color:#38bdf866;color:#93c5fd">Arquivo</span></div><div class="hint" style="font-size:11.5px;color:#c7d0e8">Importe um áudio (.wav, .mp3, .m4a) da sua voz para clonagem ultra-realista</div></label></div><input id="homeAudioFileInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac" class="hidden"></div><div class="grid stat-grid"><div class="card stat"><strong id="statGenerations">0</strong><span>gerações</span></div><div class="card stat"><strong id="statProfiles">0</strong><span>perfis de voz</span></div><div class="card stat"><strong id="statKeys">0</strong><span>chaves salvas</span></div></div><div class="section"><div class="row"><h3>Atalhos</h3></div><div class="shortcuts-grid"><button class="card secondary shortcut-btn" id="homeShortcutCloneBtn" style="text-align:left"><b>🧬 Clonar minha voz</b><div class="hint">Microfone ou áudio próprio</div></button><button class="card secondary shortcut-btn" data-go="studio" style="text-align:left"><b>🎙️ Nova narração</b><div class="hint">Escreva e gere áudio</div></button><button class="card secondary shortcut-btn" data-go="keys" style="text-align:left"><b>🔑 Adicionar API</b><div class="hint">Conecte sua chave Gemini</div></button><button class="card secondary shortcut-btn" data-go="admin" style="text-align:left"><b>🛡️ Administração</b><div class="hint">Painel local do app</div></button></div></div><div class="section" id="homeRecentSection"><div class="row" style="margin-bottom:10px"><h3>Projetos Recentes</h3><button type="button" class="btn ghost small" data-go="studio">Ver todos no estúdio</button></div><div id="homeRecentList" class="list"></div></div><div class="section notice info"><b>Privacidade & Ética:</b> o áudio da sua voz fica protegido 100% neste dispositivo. Utilize apenas sua própria voz ou áudios com consentimento.</div></section>
-<section class="screen hidden" data-screen="studio"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Estúdio</h2></div><p class="sub">Escolha uma voz, descreva a performance e gere um WAV.</p><div class="stack"><div class="field"><div class="row" style="margin-bottom:2px"><label for="textInput" style="margin:0">Texto da Narração</label><span class="pill" id="splitStatusPill">1 bloco</span></div><textarea id="textInput" placeholder="Digite ou cole o texto que você quer narrar... (ex: roteiros, audiobooks, artigos)"></textarea><div class="row"><span class="hint"><span id="charCount">0</span> caracteres · <span id="chunkCountNotice">1 bloco de narração</span></span><span class="pill" id="modelPill">Gemini TTS Preview</span></div></div><div class="card auto-split-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="auto-split-header"><label class="auto-split-toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;user-select:none"><input id="autoSplitToggle" type="checkbox" checked style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"><span>Dividir automaticamente textos longos em blocos</span></label><div class="auto-split-controls"><label for="chunkSizeSelect" class="hint" style="margin:0;font-size:12px;white-space:nowrap">Máx./bloco:</label><select id="chunkSizeSelect" style="width:auto;padding:5px 8px;font-size:12px;background:#080d1b;border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer"><option value="350">350 caracteres</option><option value="500" selected>500 caracteres (ideal)</option><option value="800">800 caracteres</option><option value="1200">1200 caracteres</option></select><button type="button" class="btn ghost small" id="toggleBlocksPreviewBtn" style="padding:4px 10px;min-height:30px;font-size:11px">Ver blocos (<span id="blocksBadgeCount">1</span>) ▾</button></div></div><div id="blocksPreviewPanel" class="hidden" style="margin-top:12px;border-top:1px solid #ffffff12;padding-top:10px"><div class="hint" style="margin-bottom:8px">Os blocos abaixo serão narrados sequencialmente com a voz selecionada e concatenados no player final:</div><div id="blocksPreviewList" style="display:grid;gap:8px;max-height:220px;overflow-y:auto"></div></div></div><div class="card"><div class="row" style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Voz</h3><span class="pill" id="voiceCountBadge">30 vozes</span><span class="pill ok" id="selectedVoiceBadge" style="font-weight:600">Kore (Firme)</span></div><button class="btn ghost small" data-go="voices">Gerenciar perfis</button></div><div class="search-box" style="margin-bottom:12px"><span class="search-icon">🔍</span><input id="voiceSearchInput" type="text" placeholder="Buscar por voz ou estilo (ex: Firme, Brilhante, Zephyr)..." autocomplete="off"><button id="clearVoiceSearch" class="search-clear hidden" title="Limpar busca">✕</button></div><div style="margin-bottom:12px"><div class="row" style="margin-bottom:6px"><div class="hint" style="font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#cdd6eb;margin:0">Filtrar por estilo:</div><div style="display:flex;gap:4px"><button type="button" class="chip-nav-btn" id="voiceFilterScrollLeft" title="Rolar estilos para a esquerda" aria-label="Rolar estilos para a esquerda">‹</button><button type="button" class="chip-nav-btn" id="voiceFilterScrollRight" title="Rolar estilos para a direita" aria-label="Rolar estilos para a direita">›</button></div></div><div class="chip-bar-wrap"><div id="voiceFilterChips" class="chip-bar"></div></div></div><div id="voiceSelectList" class="voice-list"></div></div><div class="field"><label for="directionInput">Direção de performance (opcional)</label><input id="directionInput" placeholder="Ex.: fale com energia, em português brasileiro, ritmo calmo" value="Fale naturalmente, com dicção clara."></div><div class="card speed-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="row" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><label for="speedSlider" style="font-size:13px;font-weight:700;margin:0;color:#cdd6eb">⚡ Velocidade de Reprodução e Fala</label><span class="pill ok" id="speedValueBadge" style="font-weight:700;min-width:44px;text-align:center">1.0x</span></div><button type="button" class="btn ghost small" id="resetSpeedBtn" style="padding:2px 8px;min-height:28px;font-size:11px" title="Redefinir para velocidade padrão (1.0x)">1.0x Padrão</button></div><div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">0.5x</span><input id="speedSlider" type="range" min="0.5" max="2.0" step="0.05" value="1.0" style="flex:1;accent-color:var(--primary);cursor:pointer;height:6px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">2.0x</span></div><div class="chip-bar-wrap"><div class="chip-bar" id="speedPresetsChips" style="padding:0"><button type="button" class="chip" data-speed="0.75" style="padding:4px 10px;min-height:30px;font-size:11px">0.75x (Lento)</button><button type="button" class="chip active" data-speed="1.0" style="padding:4px 10px;min-height:30px;font-size:11px">1.0x (Normal)</button><button type="button" class="chip" data-speed="1.25" style="padding:4px 10px;min-height:30px;font-size:11px">1.25x (Dinâmico)</button><button type="button" class="chip" data-speed="1.5" style="padding:4px 10px;min-height:30px;font-size:11px">1.5x (Rápido)</button></div></div></div><div class="actions studio-actions"><button class="btn primary" id="generateBtn">✨ Gerar áudio</button><button class="btn secondary" id="clearStudio">Limpar</button></div><div id="generationStatus" class="hidden"></div><div id="playerBox" class="player hidden"><div class="player-top" style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div id="playerCoverThumb" class="gen-thumb" style="width:64px;height:64px;border-radius:14px" title="Personalizar capa com IA"><img id="playerCoverImg" src="" alt="Capa da narração" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="player-meta" style="min-width:0;flex:1"><div class="player-title-row row" style="margin-bottom:4px"><b id="playerProjectTitle" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Narração gerada</b><button type="button" class="btn ghost small" id="openCoverModalBtn" title="Personalizar capa">🎨 Capa com IA</button></div><div class="hint" id="audioMeta"></div></div></div><audio id="audioPlayer" controls></audio><div id="playerBlocksList" class="hidden" style="margin-top:10px;background:#080d1b;border:1px solid var(--line);border-radius:12px;padding:10px;max-height:160px;overflow-y:auto;font-size:12px"></div><div class="actions player-actions" style="margin-top:10px"><button type="button" class="btn secondary small" id="downloadBtn">⬇️ Baixar WAV</button><button type="button" class="btn ghost small" id="viewPlayerBlocksBtn">📑 Ver blocos concatenados</button><button type="button" class="btn ghost small" id="downloadCoverBtn">🖼️ Baixar Capa</button></div></div><div class="section" id="studioGenerationsSection"><div class="row" style="margin-bottom:12px"><div><h3 style="margin:0">Projetos de Narração</h3><span class="hint">Narrações com capa personalizada</span></div><span class="pill" id="genCountBadge">0 projetos</span></div><div id="generationsList" class="list"></div></div><div class="notice warn">Este app não deve ser usado para imitar pessoas reais sem consentimento, fraude, chamadas enganosas ou autenticação por voz.</div></div></section>
+<section class="screen hidden" data-screen="studio"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Estúdio</h2></div><p class="sub">Escolha uma voz, descreva a performance e gere um WAV.</p><div class="stack"><div class="field"><div class="row" style="margin-bottom:2px"><label for="textInput" style="margin:0">Texto da Narração</label><span class="pill" id="splitStatusPill">1 bloco</span></div><textarea id="textInput" placeholder="Digite ou cole o texto que você quer narrar... (ex: roteiros, audiobooks, artigos)"></textarea><div class="row"><span class="hint"><span id="charCount">0</span> caracteres · <span id="chunkCountNotice">1 bloco de narração</span></span><span class="pill" id="modelPill">Gemini TTS Preview</span></div></div><div class="card auto-split-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="auto-split-header"><label class="auto-split-toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;user-select:none"><input id="autoSplitToggle" type="checkbox" checked style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"><span>Dividir automaticamente textos longos em blocos</span></label><div class="auto-split-controls"><label for="chunkSizeSelect" class="hint" style="margin:0;font-size:12px;white-space:nowrap">Máx./bloco:</label><select id="chunkSizeSelect" style="width:auto;padding:5px 8px;font-size:12px;background:#080d1b;border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer"><option value="1000">1.000 caracteres</option><option value="2000" selected>2.000 caracteres (recomendado)</option><option value="3000">3.000 caracteres</option><option value="4000">4.000 caracteres (máximo)</option></select><button type="button" class="btn ghost small" id="toggleBlocksPreviewBtn" style="padding:4px 10px;min-height:30px;font-size:11px">Ver blocos (<span id="blocksBadgeCount">1</span>) ▾</button></div></div><div id="blocksPreviewPanel" class="hidden" style="margin-top:12px;border-top:1px solid #ffffff12;padding-top:10px"><div class="hint" style="margin-bottom:8px">Os blocos abaixo serão narrados sequencialmente com a voz selecionada e concatenados no player final:</div><div id="blocksPreviewList" style="display:grid;gap:8px;max-height:220px;overflow-y:auto"></div></div></div><div class="card"><div class="row" style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Voz</h3><span class="pill" id="voiceCountBadge">30 vozes</span><span class="pill ok" id="selectedVoiceBadge" style="font-weight:600">Kore (Firme)</span></div><div style="display:flex;gap:6px"><button type="button" class="btn primary small" id="studioHeaderCloneBtn" style="font-size:11.5px;padding:3px 9px;min-height:30px">🧬 Clonar voz</button><button class="btn ghost small" data-go="voices">Meus perfis</button></div></div><div id="clonedVoiceActiveBanner" class="notice info hidden" style="background:#140e2b;border-color:#8b5cf688;margin-bottom:12px;padding:10px 12px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="font-size:22px;flex-shrink:0">🧬</span><div style="min-width:0"><div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>Voz clonada ativa para narração:</span><span id="activeClonedName" class="pill ok" style="font-size:11px;padding:1px 7px;background:#8b5cf633;border-color:#8b5cf6">Minha Voz</span></div><div class="hint" style="margin-top:2px;font-size:11px;color:#c4b5fd">Seus textos serão narrados com esta voz clonada (âncora acústica: <span id="activeClonedBase">Kore</span>).</div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button type="button" class="btn danger small" id="deleteActiveClonedVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Excluir este perfil de voz clonada">🗑️ Excluir voz</button><button type="button" class="btn ghost small" id="switchCatalogVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Restaurar voz de catálogo">Restaurar catálogo</button></div></div><div class="search-box" style="margin-bottom:12px"><span class="search-icon">🔍</span><input id="voiceSearchInput" type="text" placeholder="Buscar por voz ou estilo (ex: Firme, Brilhante, Zephyr)..." autocomplete="off"><button id="clearVoiceSearch" class="search-clear hidden" title="Limpar busca">✕</button></div><div style="margin-bottom:12px"><div class="row" style="margin-bottom:6px"><div class="hint" style="font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#cdd6eb;margin:0">Filtrar por estilo:</div><div style="display:flex;gap:4px"><button type="button" class="chip-nav-btn" id="voiceFilterScrollLeft" title="Rolar estilos para a esquerda" aria-label="Rolar estilos para a esquerda">‹</button><button type="button" class="chip-nav-btn" id="voiceFilterScrollRight" title="Rolar estilos para a direita" aria-label="Rolar estilos para a direita">›</button></div></div><div class="chip-bar-wrap"><div id="voiceFilterChips" class="chip-bar"></div></div></div><div id="voiceSelectList" class="voice-list"></div></div><div class="field"><label for="directionInput">Direção de performance (opcional)</label><input id="directionInput" placeholder="Ex.: fale com energia, em português brasileiro, ritmo calmo" value="Fale naturalmente, com dicção clara."></div><div class="card speed-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="row" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><label for="speedSlider" style="font-size:13px;font-weight:700;margin:0;color:#cdd6eb">⚡ Velocidade de Reprodução e Fala</label><span class="pill ok" id="speedValueBadge" style="font-weight:700;min-width:44px;text-align:center">1.0x</span></div><button type="button" class="btn ghost small" id="resetSpeedBtn" style="padding:2px 8px;min-height:28px;font-size:11px" title="Redefinir para velocidade padrão (1.0x)">1.0x Padrão</button></div><div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">0.5x</span><input id="speedSlider" type="range" min="0.5" max="2.0" step="0.05" value="1.0" style="flex:1;accent-color:var(--primary);cursor:pointer;height:6px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">2.0x</span></div><div class="chip-bar-wrap"><div class="chip-bar" id="speedPresetsChips" style="padding:0"><button type="button" class="chip" data-speed="0.75" style="padding:4px 10px;min-height:30px;font-size:11px">0.75x (Lento)</button><button type="button" class="chip active" data-speed="1.0" style="padding:4px 10px;min-height:30px;font-size:11px">1.0x (Normal)</button><button type="button" class="chip" data-speed="1.25" style="padding:4px 10px;min-height:30px;font-size:11px">1.25x (Dinâmico)</button><button type="button" class="chip" data-speed="1.5" style="padding:4px 10px;min-height:30px;font-size:11px">1.5x (Rápido)</button></div></div></div><div class="actions studio-actions"><button class="btn primary" id="generateBtn">✨ Gerar áudio</button><button class="btn secondary" id="clearStudio">Limpar</button></div><div id="generationStatus" class="hidden"></div><div id="playerBox" class="player hidden"><div class="player-top" style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div id="playerCoverThumb" class="gen-thumb" style="width:64px;height:64px;border-radius:14px" title="Personalizar capa com IA"><img id="playerCoverImg" src="" alt="Capa da narração" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="player-meta" style="min-width:0;flex:1"><div class="player-title-row row" style="margin-bottom:4px"><b id="playerProjectTitle" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Narração gerada</b><button type="button" class="btn ghost small" id="openCoverModalBtn" title="Personalizar capa">🎨 Capa com IA</button></div><div class="hint" id="audioMeta"></div></div></div><audio id="audioPlayer" controls></audio><div id="playerBlocksList" class="hidden" style="margin-top:10px;background:#080d1b;border:1px solid var(--line);border-radius:12px;padding:10px;max-height:160px;overflow-y:auto;font-size:12px"></div><div class="actions player-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary small" id="downloadMp3Btn" title="Baixar áudio compactado em MP3 para menor tamanho e compartilhamento fácil">⬇️ Baixar MP3 <span class="pill ok" style="font-size:9.5px;padding:1px 5px;background:#34d39922;border-color:#34d399;color:#6ee7b7">Compacto</span></button><button type="button" class="btn secondary small" id="downloadBtn" title="Baixar áudio WAV original sem compressão">⬇️ Baixar WAV</button><button type="button" class="btn ghost small" id="viewPlayerBlocksBtn">📑 Ver blocos concatenados</button><button type="button" class="btn ghost small" id="downloadCoverBtn">🖼️ Baixar Capa</button></div></div><div class="section" id="studioGenerationsSection"><div class="row" style="margin-bottom:12px"><div><h3 style="margin:0">Projetos de Narração</h3><span class="hint">Narrações com capa personalizada</span></div><span class="pill" id="genCountBadge">0 projetos</span></div><div id="generationsList" class="list"></div></div><div class="notice warn">Este app não deve ser usado para imitar pessoas reais sem consentimento, fraude, chamadas enganosas ou autenticação por voz.</div></div></section>
 <section class="screen hidden" data-screen="voices"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Meus perfis de voz</h2></div><p class="sub">Grave ou importe uma amostra somente com autorização. O perfil é guardado localmente para organizar seus trabalhos.</p><div class="actions" style="margin-bottom:16px"><button class="btn primary" id="newProfileBtn">＋ Adicionar perfil</button><button class="btn secondary" data-go="studio">Usar no estúdio</button></div><div id="profilesList" class="list"></div><div class="section notice info"><b>Importante:</b> o modelo Gemini TTS Preview disponibiliza vozes de catálogo. Um perfil gravado aqui é uma referência local e não altera a identidade das vozes de catálogo.</div></section>
 <section class="screen hidden" data-screen="keys"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Chaves de API</h2></div><p class="sub">As chaves são usadas apenas para chamar a API no dispositivo. Em produção, prefira um backend com cofre de segredos e limites por usuário.</p><div class="card stack"><div class="field"><label>Nome da chave</label><input id="keyName" placeholder="Meu projeto Gemini"></div><div class="field"><label>Gemini API key</label><input id="keyValue" type="password" placeholder="Cole sua chave aqui"></div><label class="hint"><input id="keyConsent" type="checkbox"> Entendo que a chave será armazenada localmente neste dispositivo.</label><button class="btn primary" id="saveKeyBtn">Salvar chave</button></div><div class="section"><div class="row"><h3>Chaves salvas</h3><span class="pill" id="keyCountLabel">0</span></div><div id="keysList" class="list"></div></div><div class="section notice warn">Nunca publique uma APK com uma chave embutida. Cada usuário deve informar a própria chave ou usar um servidor intermediário seguro.</div></section>
-<section class="screen hidden" data-screen="admin"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Administração</h2></div><p class="sub">Painel administrativo local para configurar o catálogo, consultar uso e controlar os dados deste dispositivo.</p><div id="adminGate" class="card stack"><div class="field"><label>PIN de administração</label><input id="adminPin" type="password" inputmode="numeric" placeholder="PIN"></div><button class="btn primary" id="adminLogin">Entrar no painel</button><div class="hint">Na primeira utilização, o PIN inicial é <b>2468</b>. Troque-o dentro do painel.</div></div><div id="adminPanel" class="hidden"><div class="grid"><div class="card stat"><strong id="adminGen">0</strong><span>áudios gerados</span></div><div class="card stat"><strong id="adminBytes">0 KB</strong><span>amostras locais</span></div><div class="card stat"><strong id="adminEvents">0</strong><span>eventos</span></div></div><div class="section card stack"><h3>Configuração do motor</h3><div class="field"><label>Modelo Gemini TTS</label><input id="adminModel" value="gemini-3.1-flash-tts-preview"></div><div class="field"><label>Limite de caracteres por geração</label><input id="adminLimit" type="number" value="4000"></div><label class="hint"><input id="adminRequireConsent" type="checkbox" checked> exigir confirmação de consentimento ao criar perfil</label><button class="btn primary" id="saveAdminBtn">Salvar configuração</button></div><div class="section card stack"><div class="row"><div><h3 style="margin:0">Backup e Migração de Vozes</h3><div class="hint">Exporte ou importe a lista de perfis de voz personalizada em formato JSON para transferir entre dispositivos.</div></div><span class="pill ok" id="adminProfilesBadge">0 perfis</span></div><div class="notice info" style="font-size:12px">O arquivo JSON exportado inclui todas as vozes personalizadas, dados de áudio das amostras e metadados para migração completa entre navegadores e celulares.</div><div class="actions"><button type="button" class="btn primary" id="exportVoicesJsonBtn">💾 Exportar Vozes em JSON</button><label class="btn secondary" for="importVoicesFileInput" id="importVoicesBtnLabel" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">📥 Importar Backup JSON</label><input id="importVoicesFileInput" type="file" accept=".json,application/json" class="hidden"></div></div><div class="section card stack"><h3>Segurança e manutenção</h3><div class="field"><label>Novo PIN</label><input id="newPin" type="password" inputmode="numeric" placeholder="mínimo de 4 dígitos"></div><div class="actions"><button class="btn secondary" id="changePinBtn">Trocar PIN</button><button class="btn ghost" id="exportBtn">Exportar relatório</button><button class="btn danger" id="resetBtn">Apagar dados locais</button></div></div><div class="section card"><h3>Catálogo ativo</h3><div class="hint">30 vozes pré-criadas do Gemini TTS Preview. O catálogo é editável no código para acompanhar mudanças do provedor.</div><div class="table-wrap"><table class="table" id="voiceTable"></table></div></div></div></section>
+<section class="screen hidden" data-screen="admin"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Administração</h2></div><p class="sub">Painel administrativo local para configurar o catálogo, consultar uso e controlar os dados deste dispositivo.</p><div id="adminGate" class="card stack"><div class="field"><label>PIN de administração</label><input id="adminPin" type="password" inputmode="numeric" placeholder="PIN"></div><button class="btn primary" id="adminLogin">Entrar no painel</button><div class="hint">Na primeira utilização, o PIN inicial é <b>2468</b>. Troque-o dentro do painel.</div></div><div id="adminPanel" class="hidden"><div class="grid"><div class="card stat"><strong id="adminGen">0</strong><span>áudios gerados</span></div><div class="card stat"><strong id="adminBytes">0 KB</strong><span>amostras locais</span></div><div class="card stat"><strong id="adminEvents">0</strong><span>eventos</span></div></div><div class="section card stack"><h3>Configuração do motor</h3><div class="field"><label>Modelo Gemini TTS</label><input id="adminModel" value="gemini-3.1-flash-tts-preview"></div><div class="field"><label>Limite de caracteres por geração</label><input id="adminLimit" type="number" value="4000"></div><label class="hint"><input id="adminRequireConsent" type="checkbox" checked> exigir confirmação de consentimento ao criar perfil</label><button class="btn primary" id="saveAdminBtn">Salvar configuração</button></div><div class="section card stack"><div class="row"><div><h3 style="margin:0">Backup e Migração de Vozes</h3><div class="hint">Exporte ou importe a lista de perfis de voz personalizada em formato JSON para transferir entre dispositivos.</div></div><span class="pill ok" id="adminProfilesBadge">0 perfis</span></div><div class="notice info" style="font-size:12px">O arquivo JSON exportado inclui todas as vozes personalizadas, dados de áudio das amostras e metadados para migração completa entre navegadores e celulares.</div><div class="actions"><button type="button" class="btn primary" id="exportVoicesJsonBtn">💾 Exportar Vozes em JSON</button><label class="btn secondary" for="importVoicesFileInput" id="importVoicesBtnLabel" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">📥 Importar Backup JSON</label><input id="importVoicesFileInput" type="file" accept=".json,application/json" class="hidden"></div></div><div class="section card stack" id="driveSyncSection"><div class="row" style="margin-bottom:4px"><div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">☁️ Sincronização com Google Drive</h3><span class="pill" id="driveStatusBadge">Desconectado</span></div><div class="hint" style="margin-top:2px">Backup automático remoto e restauração dos seus perfis de voz na sua conta Google Drive.</div></div></div><div id="driveUnauthBox" class="card" style="background:#090f20;border:1px dashed #8b5cf655;padding:16px;border-radius:14px;text-align:center"><div style="font-size:13px;color:#cdd6eb;margin-bottom:14px;line-height:1.5">Conecte sua conta do Google Drive para habilitar o <b>backup remoto automático</b>. Seus perfis vocais e amostras de voz ficarão salvos com segurança na nuvem pessoal da sua conta.</div><button type="button" class="gsi-material-button" id="googleDriveLoginBtn" style="margin:0 auto"><div class="gsi-material-button-state"></div><div class="gsi-material-button-content-wrapper"><div class="gsi-material-button-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="display:block;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg></div><span class="gsi-material-button-contents">Conectar Google Drive</span></div></button></div><div id="driveAuthBox" class="hidden stack"><div class="card" style="background:#090f20;border:1px solid #8b5cf655;padding:12px 14px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px;min-width:0"><img id="driveUserAvatar" src="" alt="Google User" style="width:36px;height:36px;border-radius:50%;border:1px solid #8b5cf6;background:#1e1438"><div style="min-width:0"><div id="driveUserName" style="font-weight:700;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Usuário Google</div><div id="driveUserEmail" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">email@gmail.com</div></div></div><button type="button" class="btn ghost small" id="driveLogoutBtn" style="font-size:11px;color:#fca5a5;border-color:#f8717144">Desconectar</button></div><div style="background:#0c1427;border:1px solid var(--line);border-radius:12px;padding:12px"><label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;user-select:none"><input id="driveAutoSyncToggle" type="checkbox" style="margin-top:2px;width:18px;height:18px;accent-color:var(--primary);cursor:pointer"><div><b style="font-size:13px;color:#fff;display:block">Sincronização automática remota</b><span class="hint" style="font-size:11.5px;color:#a9b4cf;line-height:1.4">Ao gravar novos clones vocais ou atualizar perfis, salva automaticamente no seu Google Drive sem precisar de exportação manual.</span></div></label></div><div id="driveSyncDetailsBox" style="font-size:12px;color:#cdd6eb;background:#060a16;border:1px solid #233150;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px"><span>Último backup:</span><b id="driveLastSyncText" style="color:#34d399">Nenhum backup realizado</b></div><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px"><span>Arquivo remoto:</span><span class="pill" style="font-size:10.5px">vozforge-perfis-backup.json</span></div></div><div class="actions" style="margin-top:4px"><button type="button" class="btn primary" id="driveSyncNowBtn">☁️ Fazer Backup Agora</button><button type="button" class="btn secondary" id="driveRestoreBtn">📥 Restaurar do Google Drive</button><a id="driveOpenFileLink" href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="btn ghost hidden" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">🔗 Abrir no Drive</a></div></div></div><div class="section card stack"><h3>Segurança e manutenção</h3><div class="field"><label>Novo PIN</label><input id="newPin" type="password" inputmode="numeric" placeholder="mínimo de 4 dígitos"></div><div class="actions"><button class="btn secondary" id="changePinBtn">Trocar PIN</button><button class="btn ghost" id="exportBtn">Exportar relatório</button><button class="btn danger" id="resetBtn">Apagar dados locais</button></div></div><div class="section card"><h3>Catálogo ativo</h3><div class="hint">30 vozes pré-criadas do Gemini TTS Preview. O catálogo é editável no código para acompanhar mudanças do provedor.</div><div class="table-wrap"><table class="table" id="voiceTable"></table></div></div></div></section>
 </main>
 <nav class="bottom"><button class="nav active" data-go="home"><svg viewBox="0 0 24 24"><path d="M12 3 3 10v10a1 1 0 0 0 1 1h5v-6h6v6h5a1 1 0 0 0 1-1V10z"/></svg>Início</button><button class="nav" data-go="studio"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3m7 9h-2a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21H8v2h8v-2h-3v-2.08A7 7 0 0 0 19 12"/></svg>Estúdio</button><button class="nav" data-go="voices"><svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 0-4 4v4a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4m8 8h-2a6 6 0 0 1-12 0H4a8 8 0 0 0 7 7.93V21H8v2h8v-2h-3v-2.07A8 8 0 0 0 20 11"/></svg>Vozes</button><button class="nav" data-go="keys"><svg viewBox="0 0 24 24"><path d="M14 3a7 7 0 0 0-5.65 11.13L3 19.5V22h2.5l1.5-1.5V19h2v-2h2.17A7 7 0 1 0 14 3m0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6"/></svg>API</button><button class="nav" data-go="admin"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 10.17 8 11 4.6-.83 8-5.75 8-11V5zm0 5a3 3 0 0 1 3 3v1h1v5H8v-5h1v-1a3 3 0 0 1 3-3m0 2a1 1 0 0 0-1 1v1h2v-1a1 1 0 0 0-1-1"/></svg>Admin</button></nav>
-<div id="toast" class="toast"></div><div id="profileModal" class="modal hidden"><div class="modal-box stack"><div class="row"><h3 id="profileModalTitle" style="margin:0">🧬 Clonagem de Voz Ultra-Realista</h3><button class="icon-btn" id="closeProfile">×</button></div><p class="hint" id="profileModalDesc">Grave sua própria voz no microfone ou envie um áudio de alta fidelidade para clonar sua voz e gerar narrações personalizadas.</p><div class="card" style="background:#090f20;border:1px solid #8b5cf633;border-radius:14px;padding:12px;font-size:12px"><div style="font-weight:700;color:#cdd6eb;margin-bottom:4px">💡 Guia para Clonagem Ultra-Realista:</div><ul style="margin:0;padding-left:18px;color:#a6b4d4;line-height:1.55;font-size:11.5px"><li>Grave em ambiente silencioso, sem eco ou ruídos de fundo.</li><li>Mantenha o microfone a cerca de 15 a 20 cm da boca.</li><li>Fale com clareza, ritmo constante e natural durante 10 a 30 segundos.</li></ul></div><div class="field"><label for="profileName">Nome do perfil de voz</label><input id="profileName" placeholder="Minha Voz (Clone Ultra-Realista)"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="recordBtn" style="flex:1">● Gravar Minha Voz</button><label class="btn secondary" for="audioFile" id="audioFileLabel" style="flex:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">↥ Subir Áudio</label><input id="audioFile" class="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"></div><div id="recordState" class="hint" style="min-height:22px;line-height:1.4">Nenhuma amostra selecionada.</div><audio id="samplePlayer" class="hidden" controls style="width:100%;border-radius:8px"></audio><div class="field"><label for="profileBaseVoice" style="font-size:12px;color:#cdd6eb">Voz base do catálogo para síntese no estúdio</label><select id="profileBaseVoice" style="font-size:13px;padding:9px 12px;background:#0b1223;color:var(--text);border:1px solid var(--line);border-radius:10px"><option value="Kore">Kore (Firme - Padrão recomendada)</option><option value="Zephyr">Zephyr (Brilhante)</option><option value="Puck">Puck (Animada)</option><option value="Charon">Charon (Informativa)</option><option value="Fenrir">Fenrir (Excitável)</option><option value="Leda">Leda (Jovem)</option><option value="Orus">Orus (Firme Masculina)</option><option value="Aoede">Aoede (Leve)</option><option value="Callirrhoe">Callirrhoe (Tranquila)</option><option value="Algieba">Algieba (Suave)</option></select><span class="hint" style="font-size:11px">Define a âncora acústica no Gemini TTS para reproduzir sua narração com o timbre clonado.</span></div><label class="hint" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="profileConsent" type="checkbox" checked style="margin-top:3px;accent-color:var(--primary)"><span>Confirmo que tenho autorização e que esta é minha própria voz para clonagem.</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input id="useImmediatelyInStudio" type="checkbox" checked style="accent-color:var(--primary)"><span style="color:#cdd6eb">Carregar voz e abrir o estúdio imediatamente após salvar</span></label><button type="button" class="btn primary" id="saveProfileBtn" style="width:100%;min-height:44px">💾 Salvar Perfil de Voz Ultra-Realista</button></div></div><div id="coverModal" class="modal hidden"><div class="modal-box stack" style="max-width:480px"><div class="row"><h3 style="margin:0">Capa do Projeto de Narração</h3><button type="button" class="icon-btn" id="closeCoverModal">×</button></div><div class="cover-preview-card"><div class="cover-art-container" id="coverArtBox"><img id="coverPreviewImg" src="" alt="Capa gerada" referrerpolicy="no-referrer"></div><div class="hint" id="coverProjectLabel" style="margin-top:9px;font-weight:600;color:#cdd6eb;text-align:center">Narração</div></div><div class="field"><label>Estilo Visual da Capa</label><div class="chip-bar-wrap"><div id="coverThemeChips" class="chip-bar"></div></div></div><div class="field"><label for="coverPromptInput">Prompt visual / Direção artística</label><input id="coverPromptInput" placeholder="Ex.: ondas de áudio néon violeta, estética cósmica, estilo minimalista..."></div><div id="coverGenStatus" class="hint" style="min-height:16px;color:#cdd6eb"></div><div class="actions"><button type="button" class="btn primary" id="doGenerateCoverBtn">✨ Gerar com IA</button><button type="button" class="btn secondary" id="applyCoverBtn">💾 Salvar no Projeto</button><button type="button" class="btn ghost" id="downloadModalCoverBtn">⬇️ Baixar PNG</button></div></div></div><div id="installModal" class="modal hidden"><div class="modal-box stack" style="max-width:420px"><div class="row"><h3 style="margin:0">📲 Instalar VozForge no Celular</h3><button type="button" class="icon-btn" id="closeInstallModal">×</button></div><div style="text-align:center;padding:10px 0"><img src="/icon-192.png" width="76" height="76" alt="VozForge" style="border-radius:18px;box-shadow:0 8px 24px #6d28d944;margin-bottom:10px"><div style="font-size:17px;font-weight:700">VozForge Studio</div><div class="hint" style="margin-top:4px">Instale o app direto no seu Android para usar em tela cheia com alta velocidade e suporte offline.</div></div><div class="notice info" style="font-size:12px;text-align:left;line-height:1.6"><b>No Google Chrome (Android):</b><br>1. Toque nos <b>3 pontinhos (⋮)</b> no canto superior do navegador.<br>2. Toque em <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b>.<br>3. Pronto! O app fica disponível no menu e na tela inicial do seu celular.</div><div class="actions"><button type="button" class="btn primary" id="confirmInstallPromptBtn">Instalar agora</button><button type="button" class="btn ghost" id="dismissInstallModalBtn">Fechar</button></div></div></div>
+<div id="toast" class="toast"></div><div id="profileModal" class="modal hidden"><div class="modal-box stack"><div class="row"><h3 id="profileModalTitle" style="margin:0">🧬 Clonagem de Voz Ultra-Realista</h3><button class="icon-btn" id="closeProfile">×</button></div><p class="hint" id="profileModalDesc">Grave sua própria voz no microfone ou envie um áudio de alta fidelidade para clonar sua voz e gerar narrações personalizadas.</p><div class="card" style="background:#090f20;border:1px solid #8b5cf633;border-radius:14px;padding:12px;font-size:12px"><div style="font-weight:700;color:#cdd6eb;margin-bottom:4px">💡 Guia para Clonagem Ultra-Realista:</div><ul style="margin:0;padding-left:18px;color:#a6b4d4;line-height:1.55;font-size:11.5px"><li>Grave em ambiente silencioso, sem eco ou ruídos de fundo.</li><li>Mantenha o microfone a cerca de 15 a 20 cm da boca.</li><li>Fale com clareza, ritmo constante e natural durante 10 a 30 segundos.</li></ul></div><div class="field"><label for="profileName">Nome do perfil de voz</label><input id="profileName" placeholder="Minha Voz (Clone Ultra-Realista)"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="recordBtn" style="flex:1">● Gravar Minha Voz</button><label class="btn secondary" for="audioFile" id="audioFileLabel" style="flex:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">↥ Subir Áudio</label><input id="audioFile" class="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"></div><div id="recordState" class="hint" style="min-height:22px;line-height:1.4">Nenhuma amostra selecionada.</div><audio id="samplePlayer" class="hidden" controls style="width:100%;border-radius:8px"></audio><div class="field"><label for="profileBaseVoice" style="font-size:12px;color:#cdd6eb">Voz base do catálogo para síntese no estúdio</label><select id="profileBaseVoice" style="font-size:13px;padding:9px 12px;background:#0b1223;color:var(--text);border:1px solid var(--line);border-radius:10px"><option value="Kore">Kore (Firme - Padrão recomendada)</option><option value="Zephyr">Zephyr (Brilhante)</option><option value="Puck">Puck (Animada)</option><option value="Charon">Charon (Informativa)</option><option value="Fenrir">Fenrir (Excitável)</option><option value="Leda">Leda (Jovem)</option><option value="Orus">Orus (Firme Masculina)</option><option value="Aoede">Aoede (Leve)</option><option value="Callirrhoe">Callirrhoe (Tranquila)</option><option value="Algieba">Algieba (Suave)</option></select><span class="hint" style="font-size:11px">Define a âncora acústica no Gemini TTS para reproduzir sua narração com o timbre clonado.</span></div><label class="hint" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="profileConsent" type="checkbox" checked style="margin-top:3px;accent-color:var(--primary)"><span>Confirmo que tenho autorização e que esta é minha própria voz para clonagem.</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="saveToVoiceListCheckbox" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Salvar minha voz clonada na lista de vozes salvas</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="useImmediatelyInStudio" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Escolher minha voz clonada para narrar textos</span></label><button type="button" class="btn primary" id="saveProfileBtn" style="width:100%;min-height:44px">💾 Salvar Perfil de Voz</button></div></div><div id="coverModal" class="modal hidden"><div class="modal-box stack" style="max-width:480px"><div class="row"><h3 style="margin:0">Capa do Projeto de Narração</h3><button type="button" class="icon-btn" id="closeCoverModal">×</button></div><div class="cover-preview-card"><div class="cover-art-container" id="coverArtBox"><img id="coverPreviewImg" src="" alt="Capa gerada" referrerpolicy="no-referrer"></div><div class="hint" id="coverProjectLabel" style="margin-top:9px;font-weight:600;color:#cdd6eb;text-align:center">Narração</div></div><div class="field"><label>Estilo Visual da Capa</label><div class="chip-bar-wrap"><div id="coverThemeChips" class="chip-bar"></div></div></div><div class="field"><label for="coverPromptInput">Prompt visual / Direção artística</label><input id="coverPromptInput" placeholder="Ex.: ondas de áudio néon violeta, estética cósmica, estilo minimalista..."></div><div id="coverGenStatus" class="hint" style="min-height:16px;color:#cdd6eb"></div><div class="actions"><button type="button" class="btn primary" id="doGenerateCoverBtn">✨ Gerar com IA</button><button type="button" class="btn secondary" id="applyCoverBtn">💾 Salvar no Projeto</button><button type="button" class="btn ghost" id="downloadModalCoverBtn">⬇️ Baixar PNG</button></div></div></div><div id="installModal" class="modal hidden"><div class="modal-box stack" style="max-width:420px"><div class="row"><h3 style="margin:0">📲 Instalar VozForge no Celular</h3><button type="button" class="icon-btn" id="closeInstallModal">×</button></div><div style="text-align:center;padding:10px 0"><img src="/icon-192.png" width="76" height="76" alt="VozForge" style="border-radius:18px;box-shadow:0 8px 24px #6d28d944;margin-bottom:10px"><div style="font-size:17px;font-weight:700">VozForge Studio</div><div class="hint" style="margin-top:4px">Instale o app direto no seu Android para usar em tela cheia com alta velocidade e suporte offline.</div></div><div class="notice info" style="font-size:12px;text-align:left;line-height:1.6"><b>No Google Chrome (Android):</b><br>1. Toque nos <b>3 pontinhos (⋮)</b> no canto superior do navegador.<br>2. Toque em <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b>.<br>3. Pronto! O app fica disponível no menu e na tela inicial do seu celular.</div><div class="actions"><button type="button" class="btn primary" id="confirmInstallPromptBtn">Instalar agora</button><button type="button" class="btn ghost" id="dismissInstallModalBtn">Fechar</button></div></div></div><div id="driveConfirmModal" class="modal hidden"><div class="modal-box stack" style="max-width:440px"><div class="row"><h3 style="margin:0" id="driveConfirmTitle">Confirmar Ação</h3><button type="button" class="icon-btn" id="closeDriveConfirmModal">×</button></div><div id="driveConfirmMessage" style="font-size:13px;color:#cdd6eb;line-height:1.5;margin:8px 0 12px"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="driveConfirmOkBtn" style="flex:1">Continuar</button><button type="button" class="btn ghost" id="driveConfirmCancelBtn" style="flex:1">Cancelar</button></div></div></div>
 <script>
 const VOICES=[['Zephyr','Brilhante'],['Puck','Animada'],['Charon','Informativa'],['Kore','Firme'],['Fenrir','Excitável'],['Leda','Jovem'],['Orus','Firme'],['Aoede','Leve'],['Callirrhoe','Tranquila'],['Autonoe','Brilhante'],['Enceladus','Soprosa'],['Iapetus','Clara'],['Umbriel','Tranquila'],['Algieba','Suave'],['Despina','Suave'],['Erinome','Clara'],['Algenib','Rouca'],['Rasalgethi','Informativa'],['Laomedeia','Animada'],['Achernar','Macia'],['Alnilam','Firme'],['Schedar','Equilibrada'],['Gacrux','Madura'],['Pulcherrima','Direta'],['Achird','Amigável'],['Zubenelgenubi','Casual'],['Vindemiatrix','Gentil'],['Sadachbia','Viva'],['Sadaltager','Conhecedora'],['Sulafat','Acolhedora']];
-const defaults={profiles:[],keys:[],generations:[],events:[],settings:{model:'gemini-3.1-flash-tts-preview',limit:4000,consent:true,pin:'2468'},selectedVoice:'Kore'};
-let db=loadDb(), currentScreen='home', currentAudioUrl=null, sampleBlob=null, recorder=null, chunks=[], serverConfig={hasServerKey:false}, voiceFilterStyle='ALL', voiceSearchQuery='', activeCoverTheme='cyberpunk', activeCoverGenId=null, activeCoverDataUrl=null, currentProjectMeta={title:'Narração',text:'',voice:'Kore',voiceStyle:'Firme'};
+const defaults={profiles:[],keys:[],generations:[],events:[],settings:{model:'gemini-3.1-flash-tts-preview',limit:4000,consent:true,pin:'2468',driveAutoSync:false,driveLastSync:null,driveLastSyncCount:0,driveFileId:null},selectedVoice:'Kore'};
+let db=loadDb(), currentScreen='home', currentAudioUrl=null, currentFinalPcm=null, currentWavBlob=null, currentMp3Blob=null, activePreviewAudio=null, activePreviewId=null, sampleBlob=null, recorder=null, chunks=[], serverConfig={hasServerKey:false}, voiceFilterStyle='ALL', voiceSearchQuery='', activeCoverTheme='cyberpunk', activeCoverGenId=null, activeCoverDataUrl=null, currentProjectMeta={title:'Narração',text:'',voice:'Kore',voiceStyle:'Firme'};
+
+function stopActivePreview(){
+  if(activePreviewAudio){
+    try{
+      activePreviewAudio.pause();
+      activePreviewAudio.currentTime=0;
+    }catch(e){}
+    activePreviewAudio=null;
+  }
+  activePreviewId=null;
+  updatePreviewButtonsUI();
+}
+
+function updatePreviewButtonsUI(){
+  document.querySelectorAll('[data-play-clone]').forEach(btn=>{
+    const id=btn.dataset.playClone;
+    const isPlaying=activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===id;
+    btn.textContent=isPlaying?'⏸️':'▶️';
+    btn.classList.toggle('playing',isPlaying);
+    const label=isPlaying?'Pausar áudio da voz':'Ouvir voz antes de escolher';
+    btn.title=label;
+    btn.setAttribute('aria-label',label);
+  });
+  document.querySelectorAll('[data-play-profile]').forEach(btn=>{
+    const id=btn.dataset.playProfile;
+    const isPlaying=activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===id;
+    btn.innerHTML=isPlaying?'⏸️ Pausar':'▶️ Ouvir';
+    btn.classList.toggle('primary',isPlaying);
+    btn.classList.toggle('secondary',!isPlaying);
+    const label=isPlaying?'Pausar áudio da voz':'Ouvir áudio da voz';
+    btn.title=label;
+    btn.setAttribute('aria-label',label);
+  });
+}
+
+function toggleVoicePreview(id,audioData,voiceName='Voz'){
+  haptic(10);
+  if(activePreviewId===id&&activePreviewAudio){
+    if(!activePreviewAudio.paused){
+      activePreviewAudio.pause();
+      updatePreviewButtonsUI();
+      toast(`Áudio de ${voiceName} pausado.`);
+      return;
+    }else{
+      activePreviewAudio.play().then(()=>{
+        updatePreviewButtonsUI();
+        toast(`Reproduzindo voz: ${voiceName}`);
+      }).catch(()=>{
+        toast('Erro ao retomar reprodução.');
+      });
+      return;
+    }
+  }
+  stopActivePreview();
+  if(!audioData){
+    toast('Nenhum áudio de amostra registrado para esta voz.');
+    return;
+  }
+  try{
+    const audio=new Audio(audioData);
+    activePreviewAudio=audio;
+    activePreviewId=id;
+    updatePreviewButtonsUI();
+    audio.onended=()=>{
+      if(activePreviewAudio===audio){
+        activePreviewAudio=null;
+        activePreviewId=null;
+        updatePreviewButtonsUI();
+      }
+    };
+    audio.onerror=()=>{
+      if(activePreviewAudio===audio){
+        activePreviewAudio=null;
+        activePreviewId=null;
+        updatePreviewButtonsUI();
+      }
+      toast('Erro ao carregar ou reproduzir amostra da voz.');
+    };
+    audio.play().then(()=>{
+      updatePreviewButtonsUI();
+      toast(`Ouvindo voz: ${voiceName}`);
+    }).catch(err=>{
+      activePreviewAudio=null;
+      activePreviewId=null;
+      updatePreviewButtonsUI();
+      toast('A reprodução automática foi bloqueada pelo navegador.');
+    });
+  }catch(e){
+    stopActivePreview();
+    toast('Falha ao iniciar reprodutor de áudio.');
+  }
+}
+
+function deleteClonedVoice(pid){
+  const profile=(db.profiles||[]).find(p=>p.id===pid);
+  const name=profile?profile.name:'esta voz clonada';
+  if(!confirm(`Deseja realmente excluir a voz clonada "${name}" deste dispositivo?\n\nEsta ação removerá o perfil vocal permanentemente.`)){
+    return;
+  }
+  haptic(15);
+  if(activePreviewId===pid){
+    stopActivePreview();
+  }
+  db.profiles=(db.profiles||[]).filter(p=>p.id!==pid);
+  let changedSelected=false;
+  if(db.selectedVoice==='clone:'+pid||db.selectedVoice===pid||(profile&&db.selectedVoice===profile.name)){
+    db.selectedVoice='Kore';
+    changedSelected=true;
+    if($('directionInput')&&$('directionInput').value.includes(name)){
+      $('directionInput').value='Fale naturalmente, com dicção clara.';
+    }
+  }
+  saveDb();
+  event('profile_deleted',name);
+  renderProfiles();
+  renderAdmin();
+  renderVoiceFilters();
+  renderVoices();
+  updateStats();
+  if(changedSelected){
+    toast(`🗑️ Voz clonada "${name}" excluída. Catálogo padrão ativado.`);
+  }else{
+    toast(`🗑️ Voz clonada "${name}" excluída.`);
+  }
+  if(typeof triggerDriveAutoSync==='function')triggerDriveAutoSync();
+}
+
+async function encodePcmToMp3Blob(pcmBytes,sampleRate=24000,kbps=128){
+  const LameLib=window.lamejs||(typeof lamejs!=='undefined'?lamejs:null);
+  if(!LameLib||!LameLib.Mp3Encoder){
+    throw new Error('Biblioteca de codificação MP3 (lamejs) não está carregada no navegador.');
+  }
+  const byteLen=pcmBytes.byteLength-(pcmBytes.byteLength%2);
+  const samples=new Int16Array(pcmBytes.buffer,pcmBytes.byteOffset,byteLen/2);
+  const channels=1;
+  const mp3encoder=new LameLib.Mp3Encoder(channels,sampleRate,kbps);
+  const sampleBlockSize=1152;
+  const mp3Chunks=[];
+  for(let i=0;i<samples.length;i+=sampleBlockSize){
+    const chunk=samples.subarray(i,i+sampleBlockSize);
+    const mp3buf=mp3encoder.encodeBuffer(chunk);
+    if(mp3buf&&mp3buf.length>0){
+      mp3Chunks.push(mp3buf);
+    }
+  }
+  const endBuf=mp3encoder.flush();
+  if(endBuf&&endBuf.length>0){
+    mp3Chunks.push(endBuf);
+  }
+  return new Blob(mp3Chunks,{type:'audio/mp3'});
+}
+
+async function convertWavBlobToMp3Blob(wavBlob,kbps=128){
+  const LameLib=window.lamejs||(typeof lamejs!=='undefined'?lamejs:null);
+  if(!LameLib||!LameLib.Mp3Encoder){
+    throw new Error('Biblioteca de codificação MP3 (lamejs) não está carregada no navegador.');
+  }
+  const arrayBuffer=await wavBlob.arrayBuffer();
+  const bytes=new Uint8Array(arrayBuffer);
+  if(bytes.length>44&&String.fromCharCode(bytes[0],bytes[1],bytes[2],bytes[3])==='RIFF'){
+    const view=new DataView(arrayBuffer);
+    const sampleRate=view.getUint32(24,true)||24000;
+    const channels=view.getUint16(22,true)||1;
+    const bitsPerSample=view.getUint16(34,true)||16;
+    let dataOffset=44;
+    let dataLen=bytes.length-44;
+    for(let o=12;o<bytes.length-8;o++){
+      if(bytes[o]===0x64&&bytes[o+1]===0x61&&bytes[o+2]===0x74&&bytes[o+3]===0x61){
+        dataOffset=o+8;
+        dataLen=view.getUint32(o+4,true);
+        break;
+      }
+    }
+    if(bitsPerSample===16&&channels===1){
+      const pcmSub=bytes.subarray(dataOffset,Math.min(bytes.length,dataOffset+dataLen));
+      return encodePcmToMp3Blob(pcmSub,sampleRate,kbps);
+    }
+  }
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)throw new Error('Web Audio API não suportada neste dispositivo.');
+  const ctx=new AudioCtx();
+  const audioBuffer=await ctx.decodeAudioData(arrayBuffer);
+  const channels=audioBuffer.numberOfChannels;
+  const sampleRate=audioBuffer.sampleRate;
+  const mp3encoder=new LameLib.Mp3Encoder(channels,sampleRate,kbps);
+  const sampleBlockSize=1152;
+  const mp3Chunks=[];
+  if(channels===1){
+    const floatSamples=audioBuffer.getChannelData(0);
+    const int16=new Int16Array(floatSamples.length);
+    for(let i=0;i<floatSamples.length;i++){
+      const s=Math.max(-1,Math.min(1,floatSamples[i]));
+      int16[i]=s<0?s*0x8000:s*0x7FFF;
+    }
+    for(let i=0;i<int16.length;i+=sampleBlockSize){
+      const chunk=int16.subarray(i,i+sampleBlockSize);
+      const buf=mp3encoder.encodeBuffer(chunk);
+      if(buf&&buf.length>0)mp3Chunks.push(buf);
+    }
+  }else{
+    const leftFloat=audioBuffer.getChannelData(0);
+    const rightFloat=audioBuffer.getChannelData(1);
+    const left16=new Int16Array(leftFloat.length);
+    const right16=new Int16Array(rightFloat.length);
+    for(let i=0;i<leftFloat.length;i++){
+      const sl=Math.max(-1,Math.min(1,leftFloat[i]));
+      left16[i]=sl<0?sl*0x8000:sl*0x7FFF;
+      const sr=Math.max(-1,Math.min(1,rightFloat[i]));
+      right16[i]=sr<0?sr*0x8000:sr*0x7FFF;
+    }
+    for(let i=0;i<left16.length;i+=sampleBlockSize){
+      const lChunk=left16.subarray(i,i+sampleBlockSize);
+      const rChunk=right16.subarray(i,i+sampleBlockSize);
+      const buf=mp3encoder.encodeBuffer(lChunk,rChunk);
+      if(buf&&buf.length>0)mp3Chunks.push(buf);
+    }
+  }
+  const endBuf=mp3encoder.flush();
+  if(endBuf&&endBuf.length>0)mp3Chunks.push(endBuf);
+  try{ctx.close()}catch(e){}
+  return new Blob(mp3Chunks,{type:'audio/mp3'});
+}
 const COVER_THEMES=[
   {id:'cyberpunk',label:'🟣 Cyberpunk Neon',desc:'Ondas neon violeta e ciano com estética futurista',bg1:'#090a1a',bg2:'#1a0d33',accent1:'#8b5cf6',accent2:'#38bdf8',glow:'#ec4899'},
   {id:'cosmic',label:'🌌 Cósmico',desc:'Espaço profundo com nebulosa e partículas sonoras',bg1:'#050814',bg2:'#0e1838',accent1:'#818cf8',accent2:'#c084fc',glow:'#38bdf8'},
@@ -292,12 +555,14 @@ const SCREEN_NAMES={home:'Início',studio:'Estúdio',voices:'Vozes',keys:'API',a
 function hasOpenModal(){
   return ($('profileModal')&&!$('profileModal').classList.contains('hidden'))||
          ($('coverModal')&&!$('coverModal').classList.contains('hidden'))||
-         ($('installModal')&&!$('installModal').classList.contains('hidden'));
+         ($('installModal')&&!$('installModal').classList.contains('hidden'))||
+         ($('driveConfirmModal')&&!$('driveConfirmModal').classList.contains('hidden'));
 }
 function closeAllModals(){
   if($('profileModal'))$('profileModal').classList.add('hidden');
   if($('coverModal'))$('coverModal').classList.add('hidden');
   if($('installModal'))$('installModal').classList.add('hidden');
+  if($('driveConfirmModal'))$('driveConfirmModal').classList.add('hidden');
 }
 
 function updateBackButtonUI(){
@@ -330,11 +595,18 @@ function setupHorizontalScrollHelpers(){
     if(el._hasScrollHelper)return;
     el._hasScrollHelper=true;
 
-    // Converte rotação da roda do mouse em rolagem horizontal
+    // Converte rotação da roda do mouse em rolagem horizontal sem bloquear a rolagem vertical da página
     el.addEventListener('wheel',e=>{
-      if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&e.deltaY!==0){
+      if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
+      const maxScroll=el.scrollWidth-el.clientWidth;
+      if(maxScroll<=2)return;
+      const isDown=e.deltaY>0;
+      const isUp=e.deltaY<0;
+      const canRight=el.scrollLeft<maxScroll-2;
+      const canLeft=el.scrollLeft>2;
+      if((isDown&&canRight)||(isUp&&canLeft)){
         e.preventDefault();
-        el.scrollLeft+=e.deltaY*1.2;
+        el.scrollLeft+=e.deltaY*1.0;
       }
     },{passive:false});
 
@@ -351,7 +623,7 @@ function setupHorizontalScrollHelpers(){
     window.addEventListener('mousemove',e=>{
       if(!isDown)return;
       const x=e.pageX-el.offsetLeft;
-      const walk=(x-startX)*1.25;
+      const walk=(x-startX)*1.2;
       if(Math.abs(walk)>4)moved=true;
       el.scrollLeft=scrollLeft-walk;
     });
@@ -372,6 +644,7 @@ function setupHorizontalScrollHelpers(){
 }
 
 function go(name,pushHistory=true){
+  stopActivePreview();
   if(name===currentScreen){
     resetScrollToTop(true);
     return;
@@ -441,11 +714,49 @@ document.addEventListener('click',e=>{
 });
 $('settingsBtn').onclick=()=>go('keys');
 function updateStats(){$('statGenerations').textContent=db.generations.length;$('statProfiles').textContent=db.profiles.length;$('statKeys').textContent=db.keys.length;const isReady=db.keys.length>0||serverConfig.hasServerKey;if(navigator.onLine===false){$('statusBadge').textContent='offline';$('statusBadge').className='badge offline'}else{$('statusBadge').textContent=isReady?'pronto':'sem API';$('statusBadge').className='badge'}}
+function getSelectedVoiceInfo(){
+  let profile=null;
+  if(db.selectedVoice&&db.selectedVoice.startsWith('clone:')){
+    const pid=db.selectedVoice.slice(6);
+    profile=db.profiles.find(p=>p.id===pid);
+  }else if(db.selectedVoice){
+    profile=db.profiles.find(p=>p.id===db.selectedVoice||p.name===db.selectedVoice);
+  }
+  if(profile){
+    const base=(profile.baseVoice&&VOICES.some(v=>v[0]===profile.baseVoice))?profile.baseVoice:'Kore';
+    return {
+      isClone:true,
+      id:profile.id,
+      name:profile.name,
+      displayName:`🧬 ${profile.name}`,
+      style:'Clone Ultra-Realista',
+      baseVoice:base,
+      apiVoice:base,
+      profile:profile
+    };
+  }
+  const cat=VOICES.find(v=>v[0]===db.selectedVoice)||VOICES.find(v=>v[0]==='Kore')||VOICES[0];
+  return {
+    isClone:false,
+    id:cat[0],
+    name:cat[0],
+    displayName:cat[0],
+    style:cat[1],
+    baseVoice:cat[0],
+    apiVoice:cat[0],
+    profile:null
+  };
+}
 function renderVoiceFilters(){
   const box=$('voiceFilterChips');
   if(!box)return;
   const rawStyles=Array.from(new Set(VOICES.map(v=>v[1]))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  const styles=[{id:'ALL',label:'Todos'},...rawStyles.map(s=>({id:s,label:s}))];
+  const cloneCount=(db.profiles||[]).length;
+  const styles=[
+    {id:'ALL',label:'Todas as vozes'},
+    {id:'CLONES',label:`🧬 Minhas Vozes (${cloneCount})`},
+    ...rawStyles.map(s=>({id:s,label:s}))
+  ];
   box.innerHTML=styles.map(s=>`<button type="button" class="chip ${voiceFilterStyle===s.id?'active':''}" data-style="${s.id}">${s.label}</button>`).join('');
   box.querySelectorAll('[data-style]').forEach(btn=>{
     btn.onclick=()=>{
@@ -471,12 +782,163 @@ if($('voiceFilterScrollRight'))$('voiceFilterScrollRight').onclick=()=>{
   const box=$('voiceFilterChips');
   if(box)box.scrollBy({left:220,behavior:'smooth'});
 };
-function renderVoices(){const box=$('voiceSelectList');const q=voiceSearchQuery.toLowerCase();const filtered=VOICES.filter(v=>{const matchStyle=voiceFilterStyle==='ALL'||v[1].toLowerCase()===voiceFilterStyle.toLowerCase();const matchText=!q||v[0].toLowerCase().includes(q)||v[1].toLowerCase().includes(q);return matchStyle&&matchText});if($('voiceCountBadge'))$('voiceCountBadge').textContent=`${filtered.length} de ${VOICES.length} vozes`;const currentV=VOICES.find(v=>v[0]===db.selectedVoice);if($('selectedVoiceBadge'))$('selectedVoiceBadge').textContent=currentV?`${currentV[0]} (${currentV[1]})`:db.selectedVoice;if(!filtered.length){box.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:20px 14px">Nenhuma voz encontrada para o filtro atual.<br><button type="button" class="btn ghost small" id="resetVoiceFiltersBtn" style="margin-top:8px">Limpar busca e filtros</button></div>`;const resetBtn=$('resetVoiceFiltersBtn');if(resetBtn){resetBtn.onclick=()=>{voiceFilterStyle='ALL';voiceSearchQuery='';if($('voiceSearchInput'))$('voiceSearchInput').value='';if($('clearVoiceSearch'))$('clearVoiceSearch').classList.add('hidden');renderVoiceFilters();renderVoices()}}}else{box.innerHTML=filtered.map(v=>`<button type="button" class="voice ${db.selectedVoice===v[0]?'selected':''}" data-voice="${v[0]}"><span><b>${v[0]}</b><span>${v[1]}</span></span><i class="dot"></i></button>`).join('');box.querySelectorAll('[data-voice]').forEach(x=>x.onclick=()=>{haptic(12);db.selectedVoice=x.dataset.voice;saveDb();renderVoices()})}$('modelPill').textContent=db.settings.model}
+function renderVoices(){
+  const box=$('voiceSelectList');
+  if(!box)return;
+  const q=voiceSearchQuery.toLowerCase();
+  const vInfo=getSelectedVoiceInfo();
+  const cloneBanner=$('clonedVoiceActiveBanner');
+  if(cloneBanner){
+    if(vInfo.isClone){
+      cloneBanner.classList.remove('hidden');
+      if($('activeClonedName'))$('activeClonedName').textContent=vInfo.name;
+      if($('activeClonedBase'))$('activeClonedBase').textContent=vInfo.baseVoice;
+    }else{
+      cloneBanner.classList.add('hidden');
+    }
+  }
+  if($('switchCatalogVoiceBtn')){$('switchCatalogVoiceBtn').onclick=()=>{
+    haptic(10);
+    db.selectedVoice='Kore';
+    saveDb();
+    renderVoices();
+    renderVoiceFilters();
+    toast('Catálogo de vozes padrão restaurado (voz Kore).');
+  }}
+  if($('deleteActiveClonedVoiceBtn')){$('deleteActiveClonedVoiceBtn').onclick=()=>{
+    const info=getSelectedVoiceInfo();
+    if(info&&info.isClone&&info.id){
+      deleteClonedVoice(info.id);
+    }else{
+      toast('Nenhuma voz clonada ativa selecionada no momento.');
+    }
+  }}
+  const profiles=db.profiles||[];
+  const matchingProfiles=profiles.filter(p=>{
+    const matchStyle=voiceFilterStyle==='ALL'||voiceFilterStyle==='CLONES'||voiceFilterStyle.toLowerCase()==='clone';
+    const matchText=!q||p.name.toLowerCase().includes(q)||(p.baseVoice&&p.baseVoice.toLowerCase().includes(q))||'clone'.includes(q);
+    return matchStyle&&matchText;
+  });
+  const matchingCatalog=VOICES.filter(v=>{
+    if(voiceFilterStyle==='CLONES')return false;
+    const matchStyle=voiceFilterStyle==='ALL'||v[1].toLowerCase()===voiceFilterStyle.toLowerCase();
+    const matchText=!q||v[0].toLowerCase().includes(q)||v[1].toLowerCase().includes(q);
+    return matchStyle&&matchText;
+  });
+  const totalVisible=matchingProfiles.length+matchingCatalog.length;
+  const totalAll=profiles.length+VOICES.length;
+  if($('voiceCountBadge'))$('voiceCountBadge').textContent=`${totalVisible} de ${totalAll} vozes`;
+  if($('selectedVoiceBadge'))$('selectedVoiceBadge').textContent=vInfo.isClone?`🧬 ${vInfo.name} (Clone)`:`${vInfo.name} (${vInfo.style})`;
+  if(!totalVisible){
+    box.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:24px 14px;text-align:center">Nenhuma voz encontrada para o filtro ou busca atual.<br><div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn ghost small" id="resetVoiceFiltersBtn">Limpar filtros e busca</button><button type="button" class="btn primary small" id="emptyStateCloneBtn">🧬 Clonar Minha Voz</button></div></div>`;
+    const resetBtn=$('resetVoiceFiltersBtn');
+    if(resetBtn){resetBtn.onclick=()=>{voiceFilterStyle='ALL';voiceSearchQuery='';if($('voiceSearchInput'))$('voiceSearchInput').value='';if($('clearVoiceSearch'))$('clearVoiceSearch').classList.add('hidden');renderVoiceFilters();renderVoices()}}
+    const cloneBtn=$('emptyStateCloneBtn');
+    if(cloneBtn){cloneBtn.onclick=()=>{openVoiceCloneModal('record')}}
+    return;
+  }
+  let html='';
+  if(matchingProfiles.length>0){
+    matchingProfiles.forEach(p=>{
+      const isSelected=vInfo.isClone&&vInfo.id===p.id;
+      const hasAudio=!!p.data;
+      const isPlaying=activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===p.id;
+      html+=`<div class="voice voice-clone-card ${isSelected?'selected':''}" data-voice="clone:${p.id}" role="button" tabindex="0" title="Escolher voz clonada ${esc(p.name)} para narrar textos"><div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px"><b style="color:#d8b4fe;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🧬 ${esc(p.name)}</b><span class="pill ok" style="font-size:9.5px;padding:1px 6px;border-color:#a855f755">CLONE</span></div><span style="color:#c4b5fd;font-size:11.5px;display:flex;align-items:center;gap:6px;margin-top:3px"><span>Ultra-Realista</span><span>•</span><span>Base: ${esc(p.baseVoice||'Kore')}</span></span></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0">${hasAudio?`<button type="button" class="voice-action-btn ${isPlaying?'playing':''}" data-play-clone="${p.id}" title="${isPlaying?'Pausar áudio da voz':'Ouvir voz antes de escolher'}" aria-label="${isPlaying?'Pausar áudio da voz':'Ouvir voz antes de escolher'}">${isPlaying?'⏸️':'▶️'}</button>`:''}<button type="button" class="voice-action-btn del" data-delete-clone="${p.id}" title="Excluir voz clonada ${esc(p.name)}" aria-label="Excluir voz clonada">🗑️</button><i class="dot" style="${isSelected?'background:#a855f7;box-shadow:0 0 0 5px #a855f733':''}"></i></div></div>`;
+    });
+  }
+  matchingCatalog.forEach(v=>{
+    const isSelected=!vInfo.isClone&&vInfo.name===v[0];
+    html+=`<div class="voice ${isSelected?'selected':''}" role="button" tabindex="0" data-voice="${v[0]}"><span><b>${v[0]}</b><span>${v[1]}</span></span><i class="dot"></i></div>`;
+  });
+  box.innerHTML=html;
+  box.querySelectorAll('[data-voice]').forEach(x=>{
+    const selectHandler=(e)=>{
+      if(e.target.closest('[data-play-clone]')||e.target.closest('[data-delete-clone]'))return;
+      haptic(12);
+      db.selectedVoice=x.dataset.voice;
+      saveDb();
+      renderVoices();
+      const info=getSelectedVoiceInfo();
+      if(info.isClone){
+        $('directionInput').value=`Fale naturalmente com dicção, ritmo e personalidade da voz clonada "${info.name}".`;
+        toast(`✨ Voz clonada "${info.name}" escolhida para narrar seus textos!`);
+      }else{
+        toast(`Voz de catálogo "${info.name}" selecionada.`);
+      }
+    };
+    x.onclick=selectHandler;
+    x.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectHandler(e)}};
+  });
+  box.querySelectorAll('[data-play-clone]').forEach(x=>{
+    x.onclick=(e)=>{
+      e.stopPropagation();
+      const pid=x.dataset.playClone;
+      const p=db.profiles.find(item=>item.id===pid);
+      if(!p||!p.data){
+        toast('Nenhum áudio de amostra encontrado para esta voz.');
+        return;
+      }
+      toggleVoicePreview(pid,p.data,p.name);
+    };
+  });
+  box.querySelectorAll('[data-delete-clone]').forEach(x=>{
+    x.onclick=(e)=>{
+      e.stopPropagation();
+      const pid=x.dataset.deleteClone;
+      deleteClonedVoice(pid);
+    };
+  });
+  if($('modelPill'))$('modelPill').textContent=db.settings.model;
+}
 if($('voiceSearchInput')){$('voiceSearchInput').oninput=e=>{voiceSearchQuery=e.target.value.trim().toLowerCase();if($('clearVoiceSearch'))$('clearVoiceSearch').classList.toggle('hidden',!e.target.value);renderVoices()}}
 if($('clearVoiceSearch')){$('clearVoiceSearch').onclick=()=>{if($('voiceSearchInput')){$('voiceSearchInput').value='';voiceSearchQuery='';$('clearVoiceSearch').classList.add('hidden');$('voiceSearchInput').focus();renderVoices()}}}
-function renderProfiles(){const box=$('profilesList');if(!box)return;if(!db.profiles.length){box.innerHTML='<div class="empty">Nenhum perfil de voz cadastrado ainda.<br>Clone sua própria voz ou importe um áudio na página inicial para começar.</div>';return}box.innerHTML=db.profiles.map(p=>{const isUltra=p.type==='clone_ultra'||(p.name&&p.name.toLowerCase().includes('clone'));const hasAudio=!!p.data;return `<div class="item" data-profile-id="${p.id}"><div class="item-main"><div class="row" style="margin-bottom:3px;align-items:center;gap:6px"><b style="font-size:14px;color:#fff">🎙️ ${esc(p.name)}</b>${isUltra?'<span class="pill ok" style="font-size:10px;padding:2px 7px">🧬 Clone Ultra-Realista</span>':'<span class="pill ok" style="font-size:10px;padding:2px 7px">consentido</span>'}</div><span>${new Date(p.at).toLocaleString('pt-BR')} · ${Math.round((p.size||0)/1024)} KB ${p.baseVoice?' · Base: '+esc(p.baseVoice):''}</span></div><div class="actions">${hasAudio?`<button type="button" class="btn secondary small" data-play-profile="${p.id}" title="Ouvir áudio da voz">▶️ Ouvir</button>`:''}<button type="button" class="btn primary small" data-use-profile="${p.id}" title="Usar voz no estúdio">🎙️ Usar no estúdio</button><button type="button" class="btn danger small" data-del-profile="${p.id}" title="Apagar perfil">Apagar</button></div></div>`;}).join('');box.querySelectorAll('[data-play-profile]').forEach(x=>{x.onclick=()=>{const p=db.profiles.find(item=>item.id===x.dataset.playProfile);if(!p||!p.data)return;const audio=new Audio(p.data);audio.play().then(()=>toast(`Reproduzindo voz clonada "${p.name}"`)).catch(()=>toast('Erro ao reproduzir áudio.'))}});box.querySelectorAll('[data-use-profile]').forEach(x=>{x.onclick=()=>{const p=db.profiles.find(item=>item.id===x.dataset.useProfile);if(!p)return;if(p.baseVoice&&VOICES.some(v=>v[0]===p.baseVoice)){db.selectedVoice=p.baseVoice;saveDb();renderVoices()}$('directionInput').value=`Fale naturalmente com timbre e ritmo alinhados à voz clonada "${p.name}".`;go('studio');toast(`Perfil vocal "${p.name}" selecionado no estúdio!`)}});box.querySelectorAll('[data-del-profile]').forEach(x=>{x.onclick=()=>{if(confirm('Deseja apagar este perfil vocal deste dispositivo?')){db.profiles=db.profiles.filter(p=>p.id!==x.dataset.delProfile);saveDb();event('profile_deleted');renderProfiles();renderAdmin();updateStats();toast('Perfil removido')}}})}
+function renderProfiles(){
+  const box=$('profilesList');
+  if(!box)return;
+  if(!db.profiles.length){
+    box.innerHTML='<div class="empty">Nenhum perfil de voz cadastrado ainda.<br>Clone sua própria voz ou importe um áudio na página inicial para começar.</div>';
+    return;
+  }
+  const vInfo=getSelectedVoiceInfo();
+  box.innerHTML=db.profiles.map(p=>{
+    const isUltra=p.type==='clone_ultra'||(p.name&&p.name.toLowerCase().includes('clone'));
+    const hasAudio=!!p.data;
+    const isCurrentActive=(vInfo.isClone&&vInfo.id===p.id)||(db.selectedVoice==='clone:'+p.id)||(db.selectedVoice===p.id)||(db.selectedVoice===p.name);
+    const isPlaying=activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===p.id;
+    return `<div class="item" data-profile-id="${p.id}"><div class="item-main"><div class="row" style="margin-bottom:3px;align-items:center;gap:6px"><b style="font-size:14px;color:#fff">🎙️ ${esc(p.name)}</b>${isUltra?'<span class="pill ok" style="font-size:10px;padding:2px 7px;border-color:#8b5cf666;background:#8b5cf622;color:#d8b4fe">🧬 Clone Ultra-Realista</span>':'<span class="pill ok" style="font-size:10px;padding:2px 7px">consentido</span>'}${isCurrentActive?'<span class="pill ok" style="font-size:10px;padding:2px 7px;border-color:#38bdf888;background:#38bdf822;color:#38bdf8">⭐ Ativa para narrar</span>':''}</div><span>${new Date(p.at).toLocaleString('pt-BR')} · ${Math.round((p.size||0)/1024)} KB ${p.baseVoice?' · Base: '+esc(p.baseVoice):''}</span></div><div class="actions" style="flex-wrap:wrap;gap:6px">${hasAudio?`<button type="button" class="btn ${isPlaying?'primary':'secondary'} small" data-play-profile="${p.id}" title="${isPlaying?'Pausar áudio da voz':'Ouvir áudio da voz antes de escolher'}">${isPlaying?'⏸️ Pausar':'▶️ Ouvir'}</button>`:''}<button type="button" class="btn ${isCurrentActive?'secondary':'primary'} small" data-use-profile="${p.id}" title="Escolher esta voz clonada para narrar textos">${isCurrentActive?'✓ Voz selecionada':'🎙️ Escolher para narrar textos'}</button><button type="button" class="btn danger small" data-del-profile="${p.id}" title="Excluir voz clonada ${esc(p.name)}">🗑️ Excluir</button></div></div>`;
+  }).join('');
+  box.querySelectorAll('[data-play-profile]').forEach(x=>{
+    x.onclick=()=>{
+      const p=db.profiles.find(item=>item.id===x.dataset.playProfile);
+      if(!p||!p.data){
+        toast('Nenhum áudio de amostra registrado.');
+        return;
+      }
+      toggleVoicePreview(p.id,p.data,p.name);
+    };
+  });
+  box.querySelectorAll('[data-use-profile]').forEach(x=>{
+    x.onclick=()=>{
+      const p=db.profiles.find(item=>item.id===x.dataset.useProfile);
+      if(!p)return;
+      db.selectedVoice='clone:'+p.id;
+      saveDb();
+      renderVoiceFilters();
+      renderVoices();
+      $('directionInput').value=`Fale naturalmente com timbre, ritmo e personalidade da voz clonada "${p.name}".`;
+      go('studio');
+      toast(`✨ Voz clonada "${p.name}" escolhida para narrar textos no Estúdio!`);
+    };
+  });
+  box.querySelectorAll('[data-del-profile]').forEach(x=>{
+    x.onclick=()=>{
+      const pid=x.dataset.delProfile;
+      deleteClonedVoice(pid);
+    };
+  });
+}
 function renderKeys(){const box=$('keysList');$('keyCountLabel').textContent=db.keys.length;if(!db.keys.length){box.innerHTML='<div class="empty">Nenhuma chave salva. Adicione uma chave Gemini para gerar áudio.</div>';return}box.innerHTML=db.keys.map(k=>`<div class="item"><div class="item-main"><b>🔑 ${esc(k.name)}</b><span>${k.value.slice(0,5)}••••••••${k.value.slice(-3)}</span></div><div class="actions"><button class="btn ${k.active?'primary':'secondary'} small" data-active-key="${k.id}">${k.active?'Ativa':'Ativar'}</button><button class="btn danger small" data-del-key="${k.id}">Apagar</button></div></div>`).join('');box.querySelectorAll('[data-active-key]').forEach(x=>x.onclick=()=>{db.keys.forEach(k=>k.active=k.id===x.dataset.activeKey);saveDb();renderKeys();toast('Chave ativa atualizada')});box.querySelectorAll('[data-del-key]').forEach(x=>x.onclick=()=>{db.keys=db.keys.filter(k=>k.id!==x.dataset.delKey);saveDb();renderKeys();toast('Chave removida')})}
-function renderAdmin(){if($('adminPanel').classList.contains('hidden'))return;$('adminGen').textContent=db.generations.length;$('adminBytes').textContent=Math.round(db.profiles.reduce((a,p)=>a+(p.size||0),0)/1024)+' KB';$('adminEvents').textContent=db.events.length;$('adminModel').value=db.settings.model;$('adminLimit').value=db.settings.limit;$('adminRequireConsent').checked=db.settings.consent;$('voiceTable').innerHTML=VOICES.map(v=>`<tr><td><b>${v[0]}</b></td><td>${v[1]}</td></tr>`).join('');if($('adminProfilesBadge'))$('adminProfilesBadge').textContent=`${db.profiles.length} perfil${db.profiles.length===1?'':'es'}`}
+function renderAdmin(){if($('adminPanel').classList.contains('hidden'))return;$('adminGen').textContent=db.generations.length;$('adminBytes').textContent=Math.round(db.profiles.reduce((a,p)=>a+(p.size||0),0)/1024)+' KB';$('adminEvents').textContent=db.events.length;$('adminModel').value=db.settings.model;$('adminLimit').value=db.settings.limit;$('adminRequireConsent').checked=db.settings.consent;$('voiceTable').innerHTML=VOICES.map(v=>`<tr><td><b>${v[0]}</b></td><td>${v[1]}</td></tr>`).join('');if($('adminProfilesBadge'))$('adminProfilesBadge').textContent=`${db.profiles.length} perfil${db.profiles.length===1?'':'es'}`;if(typeof updateDriveUI==='function')updateDriveUI();}
 function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 let currentPlaybackSpeed=1.0;
 function estimateDurationSec(charCount, speed=1.0){
@@ -493,9 +955,9 @@ function updateSpeedUI(val){const num=Math.round(Math.min(2.0,Math.max(0.5,Numbe
 if($('speedSlider')){$('speedSlider').oninput=e=>updateSpeedUI(e.target.value)}
 if($('resetSpeedBtn')){$('resetSpeedBtn').onclick=()=>{updateSpeedUI(1.0);haptic(10);toast('Velocidade redefinida para 1.0x')}}
 document.querySelectorAll('#speedPresetsChips [data-speed]').forEach(btn=>{btn.onclick=()=>{haptic(10);updateSpeedUI(Number(btn.dataset.speed))}});
-let currentGeneratedBlocks=[];
-function splitTextIntoBlocks(text,maxChars=500){if(!text||!text.trim())return[];const trimmed=text.trim();if(trimmed.length<=maxChars)return[trimmed];const paragraphs=trimmed.split(/\n+/).map(p=>p.trim()).filter(Boolean);const blocks=[];let currentBlock='';for(const p of paragraphs){if((currentBlock+(currentBlock?'\n\n':'')+p).length<=maxChars){currentBlock=currentBlock?currentBlock+'\n\n'+p:p}else{if(currentBlock){blocks.push(currentBlock);currentBlock=''}if(p.length>maxChars){const sentences=p.match(/[^.!?;\n]+[.!?;\n]+|[^.!?;\n]+$/g)||[p];for(const s of sentences){const cleanS=s.trim();if(!cleanS)continue;if((currentBlock+(currentBlock?' ':'')+cleanS).length<=maxChars){currentBlock=currentBlock?currentBlock+' '+cleanS:cleanS}else{if(currentBlock){blocks.push(currentBlock);currentBlock=''}if(cleanS.length>maxChars){const words=cleanS.split(/\s+/);for(const w of words){if((currentBlock+(currentBlock?' ':'')+w).length<=maxChars){currentBlock=currentBlock?currentBlock+' '+w:w}else{if(currentBlock)blocks.push(currentBlock);currentBlock=w}}}else{currentBlock=cleanS}}}}else{currentBlock=p}}}if(currentBlock)blocks.push(currentBlock);return blocks}
-function updateTextSplitting(){const text=$('textInput')?$('textInput').value.trim():'';const charCount=text.length;if($('charCount'))$('charCount').textContent=charCount;const autoSplit=$('autoSplitToggle')?$('autoSplitToggle').checked:true;const maxChunkSize=Number($('chunkSizeSelect')?.value||500);const blocks=autoSplit?splitTextIntoBlocks(text,maxChunkSize):(text?[text]:[]);const count=blocks.length||(text?1:0);const speed=currentPlaybackSpeed||1.0;const totalSec=blocks.reduce((acc,b)=>acc+estimateDurationSec(b.length,speed),0);const totalFmt=formatDuration(totalSec);if($('chunkCountNotice')){$('chunkCountNotice').textContent=count<=1?`1 bloco (~${totalFmt} a ${speed}x)`:`${count} blocos (~${totalFmt} a ${speed}x)`}if($('splitStatusPill')){$('splitStatusPill').textContent=count<=1?`1 bloco · ~${totalFmt}`:`${count} blocos · ~${totalFmt}`;$('splitStatusPill').className=count>1?'pill ok':'pill'}if($('blocksBadgeCount')){$('blocksBadgeCount').textContent=Math.max(1,count)}const list=$('blocksPreviewList');if(list){if(!text){list.innerHTML='<div class="hint" style="padding:10px;text-align:center">Digite ou cole um texto acima para visualizar a divisão automática em blocos e as estimativas de tempo por bloco.</div>'}else{list.innerHTML=blocks.map((b,i)=>{const sec=estimateDurationSec(b.length,speed);const secFmt=formatDuration(sec);return `<div style="background:#080d1b;border:1px solid var(--line);border-radius:10px;padding:9px 12px"><div class="row" style="margin-bottom:4px"><b style="font-size:12px;color:#cdd6eb">📦 Bloco ${i+1} de ${count}</b><div style="display:flex;gap:6px;align-items:center"><span class="pill ok" style="font-size:10px;padding:2px 7px;font-weight:600" title="Duração estimada para este bloco na velocidade ${speed}x">⏱️ ~${secFmt} <span style="opacity:0.8;font-size:9.5px">(${speed}x)</span></span><span class="pill" style="font-size:10px;padding:2px 6px">${b.length} caracteres</span></div></div><div style="font-size:12px;color:var(--muted);line-height:1.4">${esc(b)}</div></div>`}).join('')}}}
+let currentGeneratedBlocks=[], generationAborted=false;
+function splitTextIntoBlocks(text,maxChars=2000){if(!text||!text.trim())return[];const trimmed=text.trim();if(trimmed.length<=maxChars)return[trimmed];const paragraphs=trimmed.split(/\n+/).map(p=>p.trim()).filter(Boolean);const blocks=[];let currentBlock='';for(const p of paragraphs){if((currentBlock+(currentBlock?'\n\n':'')+p).length<=maxChars){currentBlock=currentBlock?currentBlock+'\n\n'+p:p}else{if(currentBlock){blocks.push(currentBlock);currentBlock=''}if(p.length>maxChars){const sentences=p.match(/[^.!?;\n]+[.!?;\n]+|[^.!?;\n]+$/g)||[p];for(const s of sentences){const cleanS=s.trim();if(!cleanS)continue;if((currentBlock+(currentBlock?' ':'')+cleanS).length<=maxChars){currentBlock=currentBlock?currentBlock+' '+cleanS:cleanS}else{if(currentBlock){blocks.push(currentBlock);currentBlock=''}if(cleanS.length>maxChars){const words=cleanS.split(/\s+/);for(const w of words){if((currentBlock+(currentBlock?' ':'')+w).length<=maxChars){currentBlock=currentBlock?currentBlock+' '+w:w}else{if(currentBlock)blocks.push(currentBlock);currentBlock=w}}}else{currentBlock=cleanS}}}}else{currentBlock=p}}}if(currentBlock)blocks.push(currentBlock);return blocks}
+function updateTextSplitting(){const text=$('textInput')?$('textInput').value.trim():'';const charCount=text.length;if($('charCount'))$('charCount').textContent=charCount;const autoSplit=$('autoSplitToggle')?$('autoSplitToggle').checked:true;const maxChunkSize=Number($('chunkSizeSelect')?.value||2000);const blocks=autoSplit?splitTextIntoBlocks(text,maxChunkSize):(text?[text]:[]);const count=blocks.length||(text?1:0);const speed=currentPlaybackSpeed||1.0;const totalSec=blocks.reduce((acc,b)=>acc+estimateDurationSec(b.length,speed),0);const totalFmt=formatDuration(totalSec);if($('chunkCountNotice')){$('chunkCountNotice').textContent=count<=1?`1 bloco (~${totalFmt} a ${speed}x)`:`${count} blocos (~${totalFmt} a ${speed}x)`}if($('splitStatusPill')){$('splitStatusPill').textContent=count<=1?`1 bloco · ~${totalFmt}`:`${count} blocos · ~${totalFmt}`;$('splitStatusPill').className=count>1?'pill ok':'pill'}if($('blocksBadgeCount')){$('blocksBadgeCount').textContent=Math.max(1,count)}const list=$('blocksPreviewList');if(list){if(!text){list.innerHTML='<div class="hint" style="padding:10px;text-align:center">Digite ou cole um texto acima para visualizar a divisão automática em blocos e as estimativas de tempo por bloco.</div>'}else{list.innerHTML=blocks.map((b,i)=>{const sec=estimateDurationSec(b.length,speed);const secFmt=formatDuration(sec);return `<div style="background:#080d1b;border:1px solid var(--line);border-radius:10px;padding:9px 12px"><div class="row" style="margin-bottom:4px"><b style="font-size:12px;color:#cdd6eb">📦 Bloco ${i+1} de ${count}</b><div style="display:flex;gap:6px;align-items:center"><span class="pill ok" style="font-size:10px;padding:2px 7px;font-weight:600" title="Duração estimada para este bloco na velocidade ${speed}x">⏱️ ~${secFmt} <span style="opacity:0.8;font-size:9.5px">(${speed}x)</span></span><span class="pill" style="font-size:10px;padding:2px 6px">${b.length} caracteres</span></div></div><div style="font-size:12px;color:var(--muted);line-height:1.4">${esc(b)}</div></div>`}).join('')}}}
 $('textInput').oninput=updateTextSplitting;
 if($('autoSplitToggle'))$('autoSplitToggle').onchange=updateTextSplitting;
 if($('chunkSizeSelect'))$('chunkSizeSelect').onchange=updateTextSplitting;
@@ -506,8 +968,8 @@ function callGemini(body,key){if(window.AndroidGemini&&window.AndroidGemini.gene
 function createProceduralCover(opts={}){const title=(opts.title||'Narração').trim();const voice=opts.voice||db.selectedVoice||'Kore';const voiceStyle=opts.voiceStyle||(VOICES.find(v=>v[0]===voice)?.[1]||'Firme');const theme=COVER_THEMES.find(t=>t.id===(opts.themeId||activeCoverTheme))||COVER_THEMES[0];const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');const grad=ctx.createLinearGradient(0,0,512,512);grad.addColorStop(0,theme.bg1);grad.addColorStop(1,theme.bg2);ctx.fillStyle=grad;ctx.fillRect(0,0,512,512);const rad=ctx.createRadialGradient(256,210,10,256,210,250);rad.addColorStop(0,theme.accent1+'44');rad.addColorStop(0.5,theme.accent2+'22');rad.addColorStop(1,'transparent');ctx.fillStyle=rad;ctx.fillRect(0,0,512,512);ctx.fillStyle='#ffffff25';for(let i=0;i<28;i++){const px=(i*47+19)%496+8;const py=(i*83+29)%480+12;const pr=((i%3)+1)*0.9;ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);ctx.fill()}ctx.save();ctx.translate(256,210);ctx.strokeStyle=theme.accent1+'44';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,110,0,Math.PI*2);ctx.stroke();ctx.strokeStyle=theme.accent2+'33';ctx.beginPath();ctx.arc(0,0,85,0,Math.PI*2);ctx.stroke();const numBars=32;const barW=6;const gap=3.5;const totalW=numBars*(barW+gap);const startX=-totalW/2;for(let b=0;b<numBars;b++){const norm=b/(numBars-1);const wave=Math.sin(norm*Math.PI)*Math.sin(norm*4*Math.PI+1.2);const h=22+Math.abs(wave)*115+(b%4===0?16:0);const bx=startX+b*(barW+gap);const bGrad=ctx.createLinearGradient(0,-h/2,0,h/2);bGrad.addColorStop(0,theme.accent1);bGrad.addColorStop(0.5,theme.accent2);bGrad.addColorStop(1,theme.glow);ctx.fillStyle=bGrad;const by=-h/2;if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,barW,h,3);ctx.fill()}else{ctx.fillRect(bx,by,barW,h)}}ctx.restore();ctx.fillStyle=theme.accent2;ctx.font='700 11px system-ui,-apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('VOZFORGE STUDIO • NARRAÇÃO IA',256,44);ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(70,56);ctx.lineTo(442,56);ctx.stroke();ctx.fillStyle='#ffffff';ctx.font='bold 22px system-ui,-apple-system,sans-serif';ctx.textAlign='center';let displayTitle=title;if(displayTitle.length>34)displayTitle=displayTitle.slice(0,32)+'…';ctx.fillText(displayTitle,256,385);ctx.fillStyle='#080d1bd9';const pillW=270;const pillH=34;const pillX=256-pillW/2;const pillY=422;if(ctx.roundRect){ctx.beginPath();ctx.roundRect(pillX,pillY,pillW,pillH,17);ctx.fill();ctx.strokeStyle=theme.accent1+'66';ctx.lineWidth=1;ctx.stroke()}else{ctx.fillRect(pillX,pillY,pillW,pillH)}ctx.fillStyle='#c7d0e8';ctx.font='600 12px system-ui,-apple-system,sans-serif';ctx.textAlign='center';ctx.fillText(`🎙️ VOZ: ${voice.toUpperCase()} (${voiceStyle.toUpperCase()})`,256,444);return canvas.toDataURL('image/png')}
 async function requestAiCover(prompt,title,voice,styleDesc){const key=db.keys.find(k=>k.active)||db.keys[0];const headers={'Content-Type':'application/json'};if(key)headers['x-goog-api-key']=key.value;const res=await fetch('/api/generate-cover',{method:'POST',headers,body:JSON.stringify({prompt,title,voice,style:styleDesc})});const data=await res.json();if(!res.ok)throw new Error(data.error?.message||'Falha na geração de imagem');if(!data.imageUrl)throw new Error('A resposta não contém imagem');return data}
 function ensureGenerationCovers(){let changed=false;db.generations.forEach(g=>{if(!g.id){g.id=crypto.randomUUID();changed=true}if(!g.title){g.title=g.text?(g.text.slice(0,45).trim()+(g.text.length>45?'…':'')):`Narração ${g.voice}`;changed=true}if(!g.cover){g.cover=createProceduralCover({title:g.title,text:g.text||'',voice:g.voice,voiceStyle:g.voiceStyle,themeId:g.theme||'cyberpunk'});changed=true}});if(changed)saveDb()}
-function renderGenerations(){ensureGenerationCovers();const box=$('generationsList');if(!box)return;if($('genCountBadge'))$('genCountBadge').textContent=`${db.generations.length} projeto${db.generations.length===1?'':'s'}`;if(!db.generations.length){box.innerHTML='<div class="empty">Nenhum projeto ainda.<br>Gere uma narração acima para criar sua primeira faixa com capa personalizada.</div>';return}box.innerHTML=db.generations.map(g=>`<div class="gen-item" data-gen-id="${g.id}"><div class="gen-thumb" data-view-cover="${g.id}" title="Clique para abrir ou editar a capa"><img src="${g.cover}" alt="Capa" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="gen-meta"><b>${esc(g.title||'Narração')}</b><p>${esc(g.text||'')}</p><div class="tags"><span class="pill ok">🎙️ ${esc(g.voice)}${g.voiceStyle?' ('+esc(g.voiceStyle)+')':''}</span><span class="pill">${g.chars||0} caracteres</span>${g.speed&&g.speed!==1?`<span class="pill ok">⚡ ${g.speed}x</span>`:''}${g.blocksCount&&g.blocksCount>1?`<span class="pill ok">📦 ${g.blocksCount} blocos</span>`:''}<span class="hint">${new Date(g.at).toLocaleDateString('pt-BR')} ${new Date(g.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></div><div class="actions"><button type="button" class="btn ghost small" data-edit-cover="${g.id}" title="Personalizar capa com IA">🎨 Capa</button><button type="button" class="btn secondary small" data-use-gen="${g.id}" title="Carregar no estúdio">▶️ Usar</button><button type="button" class="btn danger small" data-del-gen="${g.id}" title="Excluir projeto">🗑️</button></div></div>`).join('');box.querySelectorAll('[data-view-cover],[data-edit-cover]').forEach(el=>{el.onclick=()=>{const id=el.dataset.viewCover||el.dataset.editCover;openCoverModalForGen(id)}});box.querySelectorAll('[data-use-gen]').forEach(el=>{el.onclick=()=>{const id=el.dataset.useGen;const g=db.generations.find(x=>x.id===id);if(!g)return;$('textInput').value=g.text||'';if(g.speed)updateSpeedUI(g.speed);updateTextSplitting();if(g.voice&&VOICES.some(v=>v[0]===g.voice)){db.selectedVoice=g.voice;saveDb();renderVoices()}toast('Texto e voz carregados no estúdio!');window.scrollTo({top:0,behavior:'smooth'})}});box.querySelectorAll('[data-del-gen]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delGen;if(confirm('Deseja excluir este projeto de narração?')){db.generations=db.generations.filter(x=>x.id!==id);saveDb();renderGenerations();renderHomeRecent();toast('Projeto removido')}}})}
-function renderHomeRecent(){const box=$('homeRecentList');if(!box)return;ensureGenerationCovers();const recent=db.generations.slice(0,3);if(!recent.length){box.innerHTML='<div class="empty" style="padding:16px">Nenhum projeto recente ainda. Clique em "Abrir estúdio" para começar.</div>';return}box.innerHTML=recent.map(g=>`<div class="gen-item" data-gen-id="${g.id}"><div class="gen-thumb" data-home-cover="${g.id}" title="Ver capa"><img src="${g.cover}" alt="Capa" referrerpolicy="no-referrer"></div><div class="gen-meta"><b>${esc(g.title||'Narração')}</b><p>${esc(g.text||'')}</p><div class="tags"><span class="pill ok">🎙️ ${esc(g.voice)}</span><span class="hint">${new Date(g.at).toLocaleDateString('pt-BR')}</span></div></div><div class="actions"><button type="button" class="btn secondary small" data-home-open="${g.id}">Abrir</button></div></div>`).join('');box.querySelectorAll('[data-home-cover]').forEach(el=>{el.onclick=()=>openCoverModalForGen(el.dataset.homeCover)});box.querySelectorAll('[data-home-open]').forEach(el=>{el.onclick=()=>{const g=db.generations.find(x=>x.id===el.dataset.homeOpen);if(!g)return;go('studio');$('textInput').value=g.text||'';$('charCount').textContent=(g.text||'').length;if(g.voice&&VOICES.some(v=>v[0]===g.voice)){db.selectedVoice=g.voice;saveDb();renderVoices()}$('playerCoverImg').src=g.cover;$('playerProjectTitle').textContent=g.title||'Narração gerada';$('playerBox').classList.remove('hidden');activeCoverGenId=g.id;activeCoverDataUrl=g.cover}})}
+function renderGenerations(){ensureGenerationCovers();const box=$('generationsList');if(!box)return;if($('genCountBadge'))$('genCountBadge').textContent=`${db.generations.length} projeto${db.generations.length===1?'':'s'}`;if(!db.generations.length){box.innerHTML='<div class="empty">Nenhum projeto ainda.<br>Gere uma narração acima para criar sua primeira faixa com capa personalizada.</div>';return}box.innerHTML=db.generations.map(g=>`<div class="gen-item" data-gen-id="${g.id}"><div class="gen-thumb" data-view-cover="${g.id}" title="Clique para abrir ou editar a capa"><img src="${g.cover}" alt="Capa" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="gen-meta"><b>${esc(g.title||'Narração')}</b><p>${esc(g.text||'')}</p><div class="tags"><span class="pill ok">🎙️ ${esc(g.voice)}${g.voiceStyle?' ('+esc(g.voiceStyle)+')':''}</span><span class="pill">${g.chars||0} caracteres</span>${g.speed&&g.speed!==1?`<span class="pill ok">⚡ ${g.speed}x</span>`:''}${g.blocksCount&&g.blocksCount>1?`<span class="pill ok">📦 ${g.blocksCount} blocos</span>`:''}<span class="hint">${new Date(g.at).toLocaleDateString('pt-BR')} ${new Date(g.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div></div><div class="actions"><button type="button" class="btn ghost small" data-edit-cover="${g.id}" title="Personalizar capa com IA">🎨 Capa</button><button type="button" class="btn secondary small" data-use-gen="${g.id}" title="Carregar no estúdio">▶️ Usar</button><button type="button" class="btn danger small" data-del-gen="${g.id}" title="Excluir projeto">🗑️</button></div></div>`).join('');box.querySelectorAll('[data-view-cover],[data-edit-cover]').forEach(el=>{el.onclick=()=>{const id=el.dataset.viewCover||el.dataset.editCover;openCoverModalForGen(id)}});box.querySelectorAll('[data-use-gen]').forEach(el=>{el.onclick=()=>{const id=el.dataset.useGen;const g=db.generations.find(x=>x.id===id);if(!g)return;$('textInput').value=g.text||'';if(g.speed)updateSpeedUI(g.speed);updateTextSplitting();if(g.profileId&&db.profiles.some(p=>p.id===g.profileId)){db.selectedVoice='clone:'+g.profileId;}else if(g.voice&&g.voice.startsWith('clone:')){db.selectedVoice=g.voice;}else if(g.voiceName&&db.profiles.some(p=>p.name===g.voiceName)){const mp=db.profiles.find(p=>p.name===g.voiceName);db.selectedVoice='clone:'+mp.id;}else if(g.voice&&VOICES.some(v=>v[0]===g.voice)){db.selectedVoice=g.voice;}saveDb();renderVoiceFilters();renderVoices();toast('Texto e voz carregados no estúdio!');window.scrollTo({top:0,behavior:'smooth'})}});box.querySelectorAll('[data-del-gen]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delGen;if(confirm('Deseja excluir este projeto de narração?')){db.generations=db.generations.filter(x=>x.id!==id);saveDb();renderGenerations();renderHomeRecent();toast('Projeto removido')}}})}
+function renderHomeRecent(){const box=$('homeRecentList');if(!box)return;ensureGenerationCovers();const recent=db.generations.slice(0,3);if(!recent.length){box.innerHTML='<div class="empty" style="padding:16px">Nenhum projeto recente ainda. Clique em "Abrir estúdio" para começar.</div>';return}box.innerHTML=recent.map(g=>`<div class="gen-item" data-gen-id="${g.id}"><div class="gen-thumb" data-home-cover="${g.id}" title="Ver capa"><img src="${g.cover}" alt="Capa" referrerpolicy="no-referrer"></div><div class="gen-meta"><b>${esc(g.title||'Narração')}</b><p>${esc(g.text||'')}</p><div class="tags"><span class="pill ok">🎙️ ${esc(g.voice)}</span><span class="hint">${new Date(g.at).toLocaleDateString('pt-BR')}</span></div></div><div class="actions"><button type="button" class="btn secondary small" data-home-open="${g.id}">Abrir</button></div></div>`).join('');box.querySelectorAll('[data-home-cover]').forEach(el=>{el.onclick=()=>openCoverModalForGen(el.dataset.homeCover)});box.querySelectorAll('[data-home-open]').forEach(el=>{el.onclick=()=>{const g=db.generations.find(x=>x.id===el.dataset.homeOpen);if(!g)return;go('studio');$('textInput').value=g.text||'';$('charCount').textContent=(g.text||'').length;if(g.profileId&&db.profiles.some(p=>p.id===g.profileId)){db.selectedVoice='clone:'+g.profileId;}else if(g.voice&&g.voice.startsWith('clone:')){db.selectedVoice=g.voice;}else if(g.voiceName&&db.profiles.some(p=>p.name===g.voiceName)){const mp=db.profiles.find(p=>p.name===g.voiceName);db.selectedVoice='clone:'+mp.id;}else if(g.voice&&VOICES.some(v=>v[0]===g.voice)){db.selectedVoice=g.voice;}saveDb();renderVoiceFilters();renderVoices();$('playerCoverImg').src=g.cover;$('playerProjectTitle').textContent=g.title||'Narração gerada';$('playerBox').classList.remove('hidden');activeCoverGenId=g.id;activeCoverDataUrl=g.cover}})}
 function openCoverModalForGen(genId){const g=db.generations.find(x=>x.id===genId);if(!g)return;activeCoverGenId=g.id;activeCoverDataUrl=g.cover;activeCoverTheme=g.theme||'cyberpunk';currentProjectMeta={title:g.title||'Narração',text:g.text||'',voice:g.voice||'Kore',voiceStyle:g.voiceStyle||''};$('coverPreviewImg').src=g.cover;$('coverProjectLabel').textContent=`Projeto: ${g.title} · Voz: ${g.voice}`;$('coverPromptInput').value='';$('coverGenStatus').textContent='';$('coverGenStatus').className='hint';renderCoverThemes();$('coverModal').classList.remove('hidden')}
 function openCoverModalForCurrent(){const text=$('textInput').value.trim()||'Nova Narração';const title=text.slice(0,45).trim()+(text.length>45?'…':'');const currentV=VOICES.find(v=>v[0]===db.selectedVoice);const voiceStyle=currentV?currentV[1]:'';activeCoverGenId=null;currentProjectMeta={title,text,voice:db.selectedVoice,voiceStyle};if(!activeCoverDataUrl){activeCoverDataUrl=createProceduralCover({title,text,voice:db.selectedVoice,voiceStyle,themeId:activeCoverTheme})}$('coverPreviewImg').src=activeCoverDataUrl;$('coverProjectLabel').textContent=`Projeto: ${title} · Voz: ${db.selectedVoice}`;$('coverPromptInput').value='';$('coverGenStatus').textContent='';$('coverGenStatus').className='hint';renderCoverThemes();$('coverModal').classList.remove('hidden')}
 function renderCoverThemes(){const box=$('coverThemeChips');if(!box)return;box.innerHTML=COVER_THEMES.map(t=>`<button type="button" class="chip ${activeCoverTheme===t.id?'active':''}" data-theme="${t.id}" title="${t.desc}">${t.label}</button>`).join('');box.querySelectorAll('[data-theme]').forEach(btn=>{btn.onclick=()=>{activeCoverTheme=btn.dataset.theme;renderCoverThemes();const preview=createProceduralCover({title:currentProjectMeta.title,text:currentProjectMeta.text,voice:currentProjectMeta.voice,voiceStyle:currentProjectMeta.voiceStyle,themeId:activeCoverTheme});activeCoverDataUrl=preview;$('coverPreviewImg').src=preview}});setupHorizontalScrollHelpers()}
@@ -524,7 +986,241 @@ function pcmToWav(pcm,sampleRate=24000,numChannels=1,bitDepth=16){const byteRate
 function toWav(b64){const pcm=extractPcmSamples(b64);return pcmToWav(pcm,24000,1,16)}
 function renderPlayerBlocks(blocks){const box=$('playerBlocksList');if(!box)return;if(!blocks||blocks.length<=1){box.classList.add('hidden');if($('viewPlayerBlocksBtn'))$('viewPlayerBlocksBtn').classList.add('hidden');return}if($('viewPlayerBlocksBtn')){$('viewPlayerBlocksBtn').classList.remove('hidden');$('viewPlayerBlocksBtn').textContent=`📑 Ver blocos concatenados (${blocks.length}) ▾`}const speed=currentPlaybackSpeed||1.0;box.innerHTML=`<div class="row" style="margin-bottom:8px"><b style="color:#cdd6eb">Segmentos concatenados no áudio final (${blocks.length} blocos):</b><span class="pill ok">${blocks.reduce((a,b)=>a+b.length,0)} caracteres</span></div><div style="display:grid;gap:6px">${blocks.map((b,idx)=>{const sec=estimateDurationSec(b.length,speed);return `<div style="background:#111a2d;border:1px solid var(--line);border-radius:8px;padding:7px 10px"><div class="row" style="margin-bottom:3px"><span style="font-weight:700;color:var(--cyan);font-size:11px">Bloco ${idx+1} de ${blocks.length}</span><div style="display:flex;gap:5px;align-items:center"><span class="pill ok" style="font-size:10px;padding:1px 6px">⏱️ ~${formatDuration(sec)}</span><span class="hint" style="font-size:10px">${b.length} carac.</span></div></div><p style="margin:0;color:var(--text);font-size:12px;line-height:1.4">${esc(b)}</p></div>`}).join('')}</div>`}
 if($('viewPlayerBlocksBtn')){$('viewPlayerBlocksBtn').onclick=()=>{const box=$('playerBlocksList');if(!box)return;const isHidden=box.classList.contains('hidden');box.classList.toggle('hidden',!isHidden);$('viewPlayerBlocksBtn').textContent=isHidden?`📑 Ocultar blocos concatenados ▴`:`📑 Ver blocos concatenados (${currentGeneratedBlocks.length}) ▾`}}
-async function generate(){const text=$('textInput').value.trim();const key=db.keys.find(k=>k.active)||db.keys[0];if(!key&&!serverConfig.hasServerKey){toast('Adicione uma chave Gemini antes de gerar.');go('keys');return}if(!text)return toast('Digite um texto para gerar.');if(text.length>Number(db.settings.limit||4000))return toast('O texto excede o limite configurado no painel.');const autoSplit=$('autoSplitToggle')?$('autoSplitToggle').checked:true;const maxChunkSize=Number($('chunkSizeSelect')?.value||500);const blocks=autoSplit?splitTextIntoBlocks(text,maxChunkSize):[text];currentGeneratedBlocks=blocks;const btn=$('generateBtn');btn.disabled=true;btn.textContent='Gerando…';$('generationStatus').classList.remove('hidden');$('generationStatus').className='notice info';const direction=$('directionInput').value.trim();const speed=currentPlaybackSpeed||1.0;let speedDirective='';if(speed<=0.8)speedDirective=`Fale em ritmo pausado e lento (velocidade ${speed}x)`;else if(speed<1.0)speedDirective=`Fale em ritmo calmo e compassado (velocidade ${speed}x)`;else if(speed>=1.4)speedDirective=`Fale em ritmo acelerado e rápido (velocidade ${speed}x)`;else if(speed>1.0)speedDirective=`Fale em ritmo dinâmico e ágil (velocidade ${speed}x)`;const fullDirection=[direction,speedDirective].filter(Boolean).join('. ');const pcmChunks=[];try{for(let i=0;i<blocks.length;i++){const blockText=blocks[i];const blockNum=i+1;const totalBlocks=blocks.length;const pct=Math.round((i/totalBlocks)*85);const statusMsg=totalBlocks>1?`Sintetizando bloco ${blockNum} de ${totalBlocks} (${blockText.length} caracteres, ${speed}x)...`:`Conectando ao Gemini TTS (${speed}x)…`;$('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>${statusMsg}</span><b>${Math.max(5,pct)}%</b></div><div class="meter"><i style="width:${Math.max(5,pct)}%"></i></div>`;const prompt=(fullDirection?fullDirection+': ':'')+blockText;const body={model:db.settings.model||'gemini-3.1-flash-tts-preview',input:prompt,response_modalities:['audio'],generation_config:{speech_config:[{voice:db.selectedVoice}]}};const result=await callGemini(body,key?key.value:'');const data=result.data;if(!result.ok)throw new Error(data.error?.message||`A API recusou o bloco ${blockNum}`);const b64=data.output_audio?.data||data.outputAudio?.data||data.output?.audio?.data||data.steps?.flatMap(s=>s.content||[]).find(c=>c.type==='audio')?.data;if(!b64)throw new Error(`O bloco ${blockNum} não retornou áudio.`);const pcm=extractPcmSamples(b64);pcmChunks.push(pcm)}if(blocks.length>1){$('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>Concatenando ${pcmChunks.length} blocos de áudio no player final...</span><b>95%</b></div><div class="meter"><i style="width:95%"></i></div>`}const finalPcm=pcmChunks.length>1?concatenatePcm(pcmChunks,220,24000):pcmChunks[0];const wavBlob=pcmToWav(finalPcm,24000,1,16);if(currentAudioUrl)URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=URL.createObjectURL(wavBlob);$('audioPlayer').src=currentAudioUrl;$('audioPlayer').playbackRate=speed;const projectTitle=text.slice(0,45).trim()+(text.length>45?'…':'');const currentV=VOICES.find(v=>v[0]===db.selectedVoice);const voiceStyle=currentV?currentV[1]:'';const initialCover=createProceduralCover({title:projectTitle,text,voice:db.selectedVoice,voiceStyle,themeId:activeCoverTheme});const durationSec=Math.round((finalPcm.length/(24000*2))/speed);const durationFmt=`${Math.floor(durationSec/60)}:${String(durationSec%60).padStart(2,'0')}`;const genItem={id:crypto.randomUUID(),title:projectTitle,text,voice:db.selectedVoice,voiceStyle,speed:speed,chars:text.length,blocksCount:blocks.length,blocks:blocks,cover:initialCover,theme:activeCoverTheme,at:new Date().toISOString()};db.generations.unshift(genItem);if(db.generations.length>50)db.generations.pop();saveDb();$('playerCoverImg').src=initialCover;$('playerProjectTitle').textContent=projectTitle;$('playerBox').classList.remove('hidden');const blocksMeta=blocks.length>1?` · ${blocks.length} blocos`:'' ;const speedMeta=speed!==1.0?` · ⚡ ${speed}x`:'';$('audioMeta').textContent=`${db.selectedVoice} (${voiceStyle})${speedMeta} · ${text.length} caracteres${blocksMeta} · ~${durationFmt} · WAV PCM 24 kHz`;renderPlayerBlocks(blocks);$('generationStatus').className='notice info';$('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>✓ Narração completa: ${blocks.length} bloco${blocks.length>1?'s concatenados':' gerado'} a ${speed}x!</span><b>100%</b></div><div class="meter"><i style="width:100%"></i></div>`;activeCoverGenId=genItem.id;activeCoverDataUrl=initialCover;currentProjectMeta={title:projectTitle,text,voice:db.selectedVoice,voiceStyle};event('generation',`${db.selectedVoice} (${blocks.length} blocos, ${speed}x)`);renderGenerations();renderHomeRecent();$('downloadBtn').onclick=()=>{const a=document.createElement('a');a.href=currentAudioUrl;a.download=`vozforge-${db.selectedVoice.toLowerCase()}-${speed}x-${Date.now()}.wav`;a.click()};haptic(30);toast(blocks.length>1?`Áudio final (${blocks.length} blocos, ${speed}x) pronto!`:`Áudio e capa prontos (${speed}x)!`)}catch(e){console.error('Generation error:',e);$('generationStatus').className='notice warn';$('generationStatus').textContent=e.message||'Não foi possível gerar o áudio.';toast('Falha na geração')}finally{btn.disabled=false;btn.textContent='✨ Gerar áudio'}}
+async function generate(){
+  const text=$('textInput').value.trim();
+  const availableKeys=(db.keys&&db.keys.length>0)?db.keys:[];
+  let activeKeyIndex=availableKeys.findIndex(k=>k.active);
+  if(activeKeyIndex<0)activeKeyIndex=0;
+  let currentKey=availableKeys[activeKeyIndex]?availableKeys[activeKeyIndex].value:'';
+  if(!currentKey&&!serverConfig.hasServerKey){toast('Adicione uma chave Gemini antes de gerar.');go('keys');return}
+  if(!text)return toast('Digite um texto para gerar.');
+  if(text.length>Number(db.settings.limit||4000))return toast('O texto excede o limite configurado no painel.');
+  const vInfo=getSelectedVoiceInfo();
+  const autoSplit=$('autoSplitToggle')?$('autoSplitToggle').checked:true;
+  const maxChunkSize=Number($('chunkSizeSelect')?.value||2000);
+  const blocks=autoSplit?splitTextIntoBlocks(text,maxChunkSize):[text];
+  currentGeneratedBlocks=blocks;
+  generationAborted=false;
+  const btn=$('generateBtn');
+  btn.disabled=true;
+  btn.textContent='Gerando…';
+  $('generationStatus').classList.remove('hidden');
+  $('generationStatus').className='notice info';
+  const direction=$('directionInput').value.trim();
+  const speed=currentPlaybackSpeed||1.0;
+  let speedDirective='';
+  if(speed<=0.8)speedDirective=`Fale em ritmo pausado e lento (velocidade ${speed}x)`;
+  else if(speed<1.0)speedDirective=`Fale em ritmo calmo e compassado (velocidade ${speed}x)`;
+  else if(speed>=1.4)speedDirective=`Fale em ritmo acelerado e rápido (velocidade ${speed}x)`;
+  else if(speed>1.0)speedDirective=`Fale em ritmo dinâmico e ágil (velocidade ${speed}x)`;
+  let cloneDirective='';
+  if(vInfo.isClone){
+    cloneDirective=`[Perfil vocal personalizado: Clonagem de voz "${vInfo.name}". Fale com máxima naturalidade humana, dicção expressiva, timbre rico e respiração orgânica]`;
+  }
+  const fullDirection=[direction,speedDirective,cloneDirective].filter(Boolean).join('. ');
+  const pcmChunks=[];
+
+  const executeBlockWithRetry=async(blockText,blockNum,totalBlocks)=>{
+    const voiceLabel=vInfo.isClone?`voz clonada "${vInfo.name}"`:`voz ${vInfo.name}`;
+    const pct=Math.round(((blockNum-1)/totalBlocks)*85);
+    const statusMsg=totalBlocks>1?`Sintetizando bloco ${blockNum} de ${totalBlocks} com ${voiceLabel} (${blockText.length} caracteres, ${speed}x)...`:`Conectando ao Gemini TTS com ${voiceLabel} (${speed}x)…`;
+    $('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>${statusMsg}</span><b>${Math.max(5,pct)}%</b></div><div class="meter"><i style="width:${Math.max(5,pct)}%"></i></div>`;
+    const prompt=(fullDirection?fullDirection+': ':'')+blockText;
+    const body={
+      model:db.settings.model||'gemini-3.1-flash-tts-preview',
+      input:prompt,
+      response_modalities:['audio'],
+      generation_config:{speech_config:[{voice:vInfo.apiVoice}]}
+    };
+
+    let attempts=0;
+    while(attempts<4){
+      if(generationAborted)throw new Error('Geração cancelada pelo usuário.');
+      attempts++;
+      try{
+        const result=await callGemini(body,currentKey);
+        const data=result.data;
+        if(result.ok){
+          const b64=data.output_audio?.data||data.outputAudio?.data||data.output?.audio?.data||data.steps?.flatMap(s=>s.content||[]).find(c=>c.type==='audio')?.data;
+          if(!b64)throw new Error(`O bloco ${blockNum} não retornou áudio.`);
+          return extractPcmSamples(b64);
+        }
+
+        const errMsg=data.error?.message||JSON.stringify(data.error)||'Erro na API';
+        const isQuota=result.data?.error?.code===429||errMsg.includes('quota')||errMsg.includes('429')||errMsg.includes('RESOURCE_EXHAUSTED')||errMsg.includes('Rate limit');
+        if(isQuota){
+          // Tenta chave alternativa se houver mais de uma chave cadastrada
+          if(availableKeys.length>1&&activeKeyIndex+1<availableKeys.length){
+            activeKeyIndex++;
+            currentKey=availableKeys[activeKeyIndex].value;
+            toast(`Alternando para chave sobressalente "${availableKeys[activeKeyIndex].name}"...`);
+            await new Promise(r=>setTimeout(r,400));
+            continue;
+          }
+          // Parse do tempo de espera
+          let waitSec=10;
+          const retryHeaderMatch=errMsg.match(/retry\s+in\s+([\d.]+)\s*s/i)||errMsg.match(/retryAfter.*?([\d.]+)/i);
+          if(retryHeaderMatch&&retryHeaderMatch[1]){
+            waitSec=Math.min(65,Math.max(3,Math.ceil(parseFloat(retryHeaderMatch[1]))));
+          }else if(data.retryAfter){
+            waitSec=Math.min(65,Math.max(3,Math.ceil(data.retryAfter)));
+          }
+
+          // Countdown visual
+          const totalWait=waitSec;
+          for(let s=waitSec;s>0;s--){
+            if(generationAborted)throw new Error('Geração cancelada pelo usuário.');
+            const waitPct=Math.round(((totalWait-s)/totalWait)*100);
+            $('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="color:#fbbf24">⏳ Cota do Gemini atingida. Nova tentativa em <b>${s}s</b>...</span><button type="button" class="btn ghost small" id="abortCountdownBtn" style="padding:2px 8px;min-height:26px;font-size:11px">Cancelar</button></div><div class="meter"><i style="width:${waitPct}%;background:#fbbf24"></i></div>`;
+            const cancelBtn=$('abortCountdownBtn');
+            if(cancelBtn)cancelBtn.onclick=()=>{generationAborted=true};
+            await new Promise(r=>setTimeout(r,1000));
+          }
+          continue;
+        }
+        throw new Error(errMsg);
+      }catch(err){
+        if(err.message==='Geração cancelada pelo usuário.')throw err;
+        if(attempts>=4)throw err;
+        await new Promise(r=>setTimeout(r,1500));
+      }
+    }
+    throw new Error(`Falha ao sintetizar o bloco ${blockNum}.`);
+  };
+
+  try{
+    for(let i=0;i<blocks.length;i++){
+      if(generationAborted)throw new Error('Geração cancelada pelo usuário.');
+      if(i>0){
+        // Pausa preventiva de segurança entre blocos para respeitar o limite de requisições por minuto
+        await new Promise(r=>setTimeout(r,1200));
+      }
+      const pcm=await executeBlockWithRetry(blocks[i],i+1,blocks.length);
+      pcmChunks.push(pcm);
+    }
+    if(blocks.length>1){
+      $('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>Concatenando ${pcmChunks.length} blocos de áudio no player final...</span><b>95%</b></div><div class="meter"><i style="width:95%"></i></div>`;
+    }
+    const finalPcm=pcmChunks.length>1?concatenatePcm(pcmChunks,220,24000):pcmChunks[0];
+    const wavBlob=pcmToWav(finalPcm,24000,1,16);
+    currentFinalPcm=finalPcm;
+    currentWavBlob=wavBlob;
+    currentMp3Blob=null;
+    if(currentAudioUrl)URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl=URL.createObjectURL(wavBlob);
+    $('audioPlayer').src=currentAudioUrl;
+    $('audioPlayer').playbackRate=speed;
+    const projectTitle=text.slice(0,45).trim()+(text.length>45?'…':'');
+    const initialCover=createProceduralCover({
+      title:projectTitle,
+      text,
+      voice:vInfo.displayName,
+      voiceStyle:vInfo.style,
+      themeId:activeCoverTheme
+    });
+    const durationSec=Math.round((finalPcm.length/(24000*2))/speed);
+    const durationFmt=`${Math.floor(durationSec/60)}:${String(durationSec%60).padStart(2,'0')}`;
+    const genItem={
+      id:crypto.randomUUID(),
+      title:projectTitle,
+      text,
+      voice:vInfo.displayName,
+      voiceName:vInfo.name,
+      voiceStyle:vInfo.style,
+      isClone:vInfo.isClone,
+      profileId:vInfo.isClone?vInfo.id:null,
+      baseVoice:vInfo.baseVoice,
+      speed:speed,
+      chars:text.length,
+      blocksCount:blocks.length,
+      blocks:blocks,
+      cover:initialCover,
+      theme:activeCoverTheme,
+      at:new Date().toISOString()
+    };
+    db.generations.unshift(genItem);
+    if(db.generations.length>50)db.generations.pop();
+    saveDb();
+    $('playerCoverImg').src=initialCover;
+    $('playerProjectTitle').textContent=projectTitle;
+    $('playerBox').classList.remove('hidden');
+    const blocksMeta=blocks.length>1?` · ${blocks.length} blocos`:'';
+    const speedMeta=speed!==1.0?` · ⚡ ${speed}x`:'';
+    $('audioMeta').textContent=`${vInfo.displayName} (${vInfo.style})${speedMeta} · ${text.length} caracteres${blocksMeta} · ~${durationFmt} · WAV PCM 24 kHz`;
+    renderPlayerBlocks(blocks);
+    $('generationStatus').className='notice info';
+    $('generationStatus').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>✓ Narração com ${vInfo.displayName} finalizada: ${blocks.length} bloco${blocks.length>1?'s concatenados':' gerado'} a ${speed}x!</span><b>100%</b></div><div class="meter"><i style="width:100%"></i></div>`;
+    activeCoverGenId=genItem.id;
+    activeCoverDataUrl=initialCover;
+    currentProjectMeta={title:projectTitle,text,voice:vInfo.displayName,voiceStyle:vInfo.style};
+    event('generation',`${vInfo.displayName} (${blocks.length} blocos, ${speed}x)`);
+    renderGenerations();
+    renderHomeRecent();
+    $('downloadBtn').onclick=()=>{
+      const a=document.createElement('a');
+      a.href=currentAudioUrl;
+      const safeVoice=(vInfo.name||'voz').toLowerCase().replace(/[^a-z0-9]/gi,'_');
+      a.download=`vozforge-${safeVoice}-${speed}x-${Date.now()}.wav`;
+      a.click();
+    };
+    if($('downloadMp3Btn')){$('downloadMp3Btn').onclick=async()=>{
+      if(!currentFinalPcm&&!currentWavBlob){
+        toast('Nenhum áudio gerado disponível para download.');
+        return;
+      }
+      const btn=$('downloadMp3Btn');
+      const oldHtml=btn.innerHTML;
+      btn.disabled=true;
+      btn.innerHTML='⏳ Convertendo MP3...';
+      try{
+        let mp3Blob=currentMp3Blob;
+        if(!mp3Blob){
+          if(currentFinalPcm){
+            mp3Blob=await encodePcmToMp3Blob(currentFinalPcm,24000,128);
+          }else if(currentWavBlob){
+            mp3Blob=await convertWavBlobToMp3Blob(currentWavBlob,128);
+          }
+          currentMp3Blob=mp3Blob;
+        }
+        if(!mp3Blob)throw new Error('Falha ao gerar arquivo MP3.');
+        const mp3Url=URL.createObjectURL(mp3Blob);
+        const a=document.createElement('a');
+        a.href=mp3Url;
+        const safeVoice=(vInfo.name||'voz').toLowerCase().replace(/[^a-z0-9]/gi,'_');
+        a.download=`vozforge-${safeVoice}-${speed}x-${Date.now()}.mp3`;
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(mp3Url),15000);
+        const wavSize=currentWavBlob?currentWavBlob.size:(currentFinalPcm?currentFinalPcm.byteLength+44:0);
+        const mp3Size=mp3Blob.size;
+        const reduction=wavSize>0?Math.round((1-(mp3Size/wavSize))*100):0;
+        const sizeKb=Math.round(mp3Size/1024);
+        haptic(20);
+        toast(`⬇️ MP3 baixado com sucesso! (${sizeKb} KB${reduction>0?` · -${reduction}% menor`:''})`);
+      }catch(err){
+        console.error('MP3 download error:',err);
+        toast('Erro ao converter para MP3: '+(err.message||err));
+      }finally{
+        btn.disabled=false;
+        btn.innerHTML=oldHtml;
+      }
+    }}
+    haptic(30);
+    toast(vInfo.isClone?`✨ Narração com sua voz clonada "${vInfo.name}" (${speed}x) concluída!`:(blocks.length>1?`Áudio final (${blocks.length} blocos, ${speed}x) pronto!`:`Áudio e capa prontos (${speed}x)!`));
+  }catch(e){
+    console.error('Generation error:',e);
+    $('generationStatus').className='notice warn';
+    const msg=e.message||'Não foi possível gerar o áudio.';
+    if(msg.includes('quota')||msg.includes('429')||msg.includes('RESOURCE_EXHAUSTED')){
+      $('generationStatus').innerHTML=`<div style="display:flex;flex-direction:column;gap:8px"><div><b>⚠️ Limite de requisições do Gemini atingido temporariamente.</b><br><span style="font-size:12px">Aguarde alguns instantes para a cota reiniciar ou cadastre outra chave de API no menu.</span></div><div style="display:flex;gap:8px"><button type="button" class="btn secondary small" onclick="go('keys')">🔑 Gerenciar chaves de API</button><button type="button" class="btn primary small" onclick="generate()">🔄 Tentar novamente</button></div></div>`;
+    }else{
+      $('generationStatus').textContent=msg;
+    }
+    toast(msg.includes('cancelada')?'Geração cancelada':'Falha na geração');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='✨ Gerar áudio';
+  }
+}
 $('generateBtn').onclick=generate;
 function openVoiceCloneModal(initialMode='record'){
   sampleBlob=null;
@@ -534,6 +1230,7 @@ function openVoiceCloneModal(initialMode='record'){
   $('samplePlayer').src='';
   if($('recordBtn'))$('recordBtn').textContent='● Gravar Minha Voz';
   $('profileConsent').checked=true;
+  if($('saveToVoiceListCheckbox'))$('saveToVoiceListCheckbox').checked=true;
   if($('useImmediatelyInStudio'))$('useImmediatelyInStudio').checked=true;
   if(initialMode==='upload'){
     $('profileModalTitle').textContent='🧬 Subir Áudio para Clone Ultra-Realista';
@@ -551,17 +1248,115 @@ function openVoiceCloneModal(initialMode='record'){
 if($('homeHeroCloneBtn'))$('homeHeroCloneBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
 if($('homeCardCloneMicBtn'))$('homeCardCloneMicBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
 if($('homeShortcutCloneBtn'))$('homeShortcutCloneBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
+if($('studioHeaderCloneBtn'))$('studioHeaderCloneBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
 if($('homeAudioFileInput')){$('homeAudioFileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;sampleBlob=f;openVoiceCloneModal('upload');const cleanName=f.name.replace(/\.[^/.]+$/,'').trim();$('profileName').value=cleanName?`Minha Voz - ${cleanName}`:'Minha Voz (Clone Ultra-Realista)';$('recordState').innerHTML=`<span style="color:#9ff4cf;font-weight:600">✓ Áudio da voz carregado:</span> ${esc(f.name)} (${Math.round(f.size/1024)} KB)`;$('samplePlayer').src=URL.createObjectURL(f);$('samplePlayer').classList.remove('hidden');e.target.value='';toast('Áudio da voz pronto! Salve o perfil para clonar.')}};
 $('newProfileBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
 $('closeProfile').onclick=()=>{$('profileModal').classList.add('hidden')};
 $('audioFile').onchange=e=>{const f=e.target.files[0];if(!f)return;sampleBlob=f;const cleanName=f.name.replace(/\.[^/.]+$/,'').trim();if(!$('profileName').value.trim()||$('profileName').value==='Minha voz'){$('profileName').value=cleanName?`Minha Voz - ${cleanName}`:'Minha Voz (Clone Ultra-Realista)'}$('recordState').innerHTML=`<span style="color:#9ff4cf;font-weight:600">✓ Áudio selecionado:</span> ${esc(f.name)} (${Math.round(f.size/1024)} KB)`;$('samplePlayer').src=URL.createObjectURL(f);$('samplePlayer').classList.remove('hidden');toast('Amostra de áudio carregada!')};
 function getAudioMimeType(){const types=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac','audio/ogg;codecs=opus'];for(const t of types){if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))return t}return''}
 $('recordBtn').onclick=async()=>{if(recorder&&recorder.state==='recording'){recorder.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];const mime=getAudioMimeType();recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks.push(e.data)};recorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());sampleBlob=new Blob(chunks,{type:recorder.mimeType||mime||'audio/webm'});$('recordState').innerHTML=`<span style="color:#9ff4cf;font-weight:600">✓ Gravação pronta:</span> ${Math.round(sampleBlob.size/1024)} KB`;$('samplePlayer').src=URL.createObjectURL(sampleBlob);$('samplePlayer').classList.remove('hidden');$('recordBtn').textContent='● Gravar novamente';toast('Gravação finalizada com sucesso!')};recorder.start(250);$('recordBtn').textContent='■ Concluir Gravação';$('recordState').innerHTML='<span class="recording"><i></i> Gravando sua voz… fale com clareza por 10 a 30 segundos</span>'}catch(e){toast('Permita o microfone no navegador para gravar sua voz.')}};
-$('saveProfileBtn').onclick=async()=>{if(!sampleBlob)return toast('Grave sua voz ou suba um arquivo de áudio primeiro.');if(db.settings.consent&&!$('profileConsent').checked)return toast('Confirme que você tem autorização ou que esta é sua voz.');const name=$('profileName').value.trim()||'Minha Voz (Clone Ultra-Realista)';const baseVoice=$('profileBaseVoice')?.value||'Kore';const data=await blobDataUrl(sampleBlob);const newProfile={id:crypto.randomUUID(),name,size:sampleBlob.size,data,type:'clone_ultra',baseVoice,at:new Date().toISOString()};db.profiles.push(newProfile);saveDb();event('profile_created',`${name} (ultra-realista)`);$('profileModal').classList.add('hidden');renderProfiles();renderAdmin();updateStats();const useNow=$('useImmediatelyInStudio')?.checked;if(useNow){if(baseVoice&&VOICES.some(v=>v[0]===baseVoice)){db.selectedVoice=baseVoice;saveDb();renderVoices()}$('directionInput').value=`Fale com naturalidade, ritmo e timbre alinhados ao perfil de voz clonado "${name}".`;go('studio');toast(`✨ Voz "${name}" clonada e ativada no estúdio!`)}else{toast(`✨ Perfil vocal "${name}" clonado e salvo com sucesso!`)}};
+$('saveProfileBtn').onclick=async()=>{
+  if(!sampleBlob)return toast('Grave sua voz ou suba um arquivo de áudio primeiro.');
+  if(db.settings.consent&&!$('profileConsent').checked)return toast('Confirme que você tem autorização ou que esta é sua voz.');
+  const name=$('profileName').value.trim()||'Minha Voz (Clone Ultra-Realista)';
+  const baseVoice=$('profileBaseVoice')?.value||'Kore';
+  const saveToList=$('saveToVoiceListCheckbox')?$('saveToVoiceListCheckbox').checked:true;
+  const useNow=$('useImmediatelyInStudio')?$('useImmediatelyInStudio').checked:true;
+  const data=await blobDataUrl(sampleBlob);
+  const newProfile={
+    id:crypto.randomUUID(),
+    name,
+    size:sampleBlob.size,
+    data,
+    type:'clone_ultra',
+    baseVoice,
+    savedToVoiceList:saveToList,
+    at:new Date().toISOString()
+  };
+  if(saveToList){
+    db.profiles.push(newProfile);
+    saveDb();
+    event('profile_created',`${name} (ultra-realista)`);
+  }
+  $('profileModal').classList.add('hidden');
+  renderProfiles();
+  renderAdmin();
+  updateStats();
+  if(typeof triggerDriveAutoSync==='function')triggerDriveAutoSync();
+  if(useNow){
+    db.selectedVoice='clone:'+newProfile.id;
+    saveDb();
+    renderVoiceFilters();
+    renderVoices();
+    $('directionInput').value=`Fale com naturalidade, dicção e expressividade da voz clonada "${name}".`;
+    go('studio');
+    toast(`✨ Voz "${name}" salva na sua lista e escolhida para narrar textos!`);
+  }else{
+    renderVoiceFilters();
+    renderVoices();
+    toast(saveToList?`✨ Voz clonada "${name}" salva na sua lista de vozes!`:`✨ Amostra vocal pronta para uso temporário.`);
+  }
+};
 function blobDataUrl(blob){return new Promise((r,j)=>{const f=new FileReader();f.onload=()=>r(f.result);f.onerror=j;f.readAsDataURL(blob)})}
 $('adminLogin').onclick=()=>{if($('adminPin').value===db.settings.pin){$('adminGate').classList.add('hidden');$('adminPanel').classList.remove('hidden');event('admin_login');renderAdmin();toast('Painel liberado')}else toast('PIN incorreto')};$('saveAdminBtn').onclick=()=>{db.settings.model=$('adminModel').value.trim()||defaults.settings.model;db.settings.limit=Math.max(100,Number($('adminLimit').value)||4000);db.settings.consent=$('adminRequireConsent').checked;saveDb();event('admin_settings');renderAdmin();toast('Configuração salva')};$('changePinBtn').onclick=()=>{const p=$('newPin').value.trim();if(!/^\d{4,}$/.test(p))return toast('Use pelo menos 4 dígitos.');db.settings.pin=p;saveDb();$('newPin').value='';toast('PIN alterado')};$('exportBtn').onclick=()=>{const report={app:'VozForge Studio',exportedAt:new Date().toISOString(),settings:{model:db.settings.model,limit:db.settings.limit},generations:db.generations.length,profiles:db.profiles.map(p=>({name:p.name,size:p.size,at:p.at})),keys:db.keys.map(k=>({name:k.name,active:k.active,at:k.at})),events:db.events};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));a.download='vozforge-relatorio.json';a.click();event('report_exported');toast('Relatório exportado sem o conteúdo das chaves')};$('resetBtn').onclick=()=>{if(confirm('Apagar chaves, perfis e histórico deste dispositivo?')){localStorage.removeItem('vozforge_db');db=loadDb();location.reload()}};
 if($('exportVoicesJsonBtn')){$('exportVoicesJsonBtn').onclick=()=>{haptic(15);const profiles=db.profiles||[];if(!profiles.length){toast('Nenhum perfil de voz cadastrado no momento.')}const payload={app:'VozForge Studio',type:'vozforge_custom_voices_backup',version:'1.0',exportedAt:new Date().toISOString(),totalProfiles:profiles.length,profiles:profiles.map(p=>({id:p.id,name:p.name,size:p.size,at:p.at,data:p.data})),catalogVoices:VOICES.map(v=>({voice:v[0],style:v[1]})),selectedVoice:db.selectedVoice};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');const dateStr=new Date().toISOString().slice(0,10);a.href=URL.createObjectURL(blob);a.download=`vozforge-vozes-backup-${dateStr}.json`;a.click();event('voices_backup_exported',`${profiles.length} vozes`);toast(`Lista de vozes (${profiles.length} perfis) exportada em JSON!`)}}
-if($('importVoicesFileInput')){$('importVoicesFileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);const incoming=Array.isArray(data)?data:(data.profiles||[]);if(!Array.isArray(incoming)||!incoming.length)return toast('Nenhum perfil de voz encontrado no JSON.');let added=0;incoming.forEach(p=>{if(p&&p.name){const exists=db.profiles.some(x=>x.id===p.id||(x.name===p.name&&x.size===p.size));if(!exists){db.profiles.push({id:p.id||crypto.randomUUID(),name:p.name,size:p.size||0,data:p.data||'',at:p.at||new Date().toISOString()});added++}}});if(added>0){saveDb();renderProfiles();renderAdmin();updateStats();event('voices_imported',`${added} perfis`);haptic(25);toast(`Sucesso! ${added} perfil(is) de voz importado(s).`)}else{toast('Todos os perfis do backup já constam neste aparelho.')}}catch(err){console.error('Import JSON error:',err);toast('Falha ao ler arquivo JSON de backup.')}finally{e.target.value=''}};reader.readAsText(f)}}
+if($('importVoicesFileInput')){$('importVoicesFileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);const incoming=Array.isArray(data)?data:(data.profiles||[]);if(!Array.isArray(incoming)||!incoming.length)return toast('Nenhum perfil de voz encontrado no JSON.');let added=0;incoming.forEach(p=>{if(p&&p.name){const exists=db.profiles.some(x=>x.id===p.id||(x.name===p.name&&x.size===p.size));if(!exists){db.profiles.push({id:p.id||crypto.randomUUID(),name:p.name,size:p.size||0,data:p.data||'',at:p.at||new Date().toISOString()});added++}}});if(added>0){saveDb();renderProfiles();renderAdmin();updateStats();event('voices_imported',`${added} perfis`);haptic(25);toast(`Sucesso! ${added} perfil(is) de voz importado(s).`);if(typeof triggerDriveAutoSync==='function')triggerDriveAutoSync();}else{toast('Todos os perfis do backup já constam neste aparelho.')}}catch(err){console.error('Import JSON error:',err);toast('Falha ao ler arquivo JSON de backup.')}finally{e.target.value=''}};reader.readAsText(f)}}
+
+// Google Drive Integration & Auto-Sync
+let cachedDriveAccessToken=null,currentGoogleDriveUser=null,fbAuthInstance=null,fbGoogleAuthProvider=null,isDriveSigningIn=false,driveAutoSyncTimer=null,currentDriveConfirmCallback=null;
+function showDriveConfirmModal({title,message,okText='Continuar',onConfirm}){if($('driveConfirmTitle'))$('driveConfirmTitle').textContent=title;if($('driveConfirmMessage'))$('driveConfirmMessage').innerHTML=message;if($('driveConfirmOkBtn'))$('driveConfirmOkBtn').textContent=okText;currentDriveConfirmCallback=onConfirm;if($('driveConfirmModal'))$('driveConfirmModal').classList.remove('hidden')}
+function hideDriveConfirmModal(){if($('driveConfirmModal'))$('driveConfirmModal').classList.add('hidden');currentDriveConfirmCallback=null}
+if($('closeDriveConfirmModal'))$('closeDriveConfirmModal').onclick=hideDriveConfirmModal;
+if($('driveConfirmCancelBtn'))$('driveConfirmCancelBtn').onclick=hideDriveConfirmModal;
+if($('driveConfirmOkBtn'))$('driveConfirmOkBtn').onclick=()=>{const cb=currentDriveConfirmCallback;hideDriveConfirmModal();if(cb)cb()};
+
+const FALLBACK_FIREBASE_CONFIG={projectId:"gen-lang-client-0204293805",appId:"1:391919962846:web:a964b7d2cd105a9d43504f",apiKey:"AIzaSyCzLn1yzXbvEoa3WbxlhPCyIVb1E0bUuxw",authDomain:"gen-lang-client-0204293805.firebaseapp.com",storageBucket:"gen-lang-client-0204293805.firebasestorage.app",messagingSenderId:"391919962846",oAuthClientId:"391919962846-3gsiq5ues7djrj028coj7ag11uulslfn.apps.googleusercontent.com"};
+async function getFirebaseConfig(){try{const res=await fetch('/api/firebase-config');if(res.ok){const cfg=await res.json();if(cfg&&cfg.apiKey)return cfg}}catch(e){console.warn('Fallback /api/firebase-config:',e)}try{const res2=await fetch('/firebase-applet-config.json');if(res2.ok){const cfg2=await res2.json();if(cfg2&&cfg2.apiKey)return cfg2}}catch(e2){console.warn('Fallback /firebase-applet-config.json:',e2)}return FALLBACK_FIREBASE_CONFIG}
+async function initGoogleDriveAuth(){if(fbAuthInstance&&fbGoogleAuthProvider)return fbAuthInstance;try{const config=await getFirebaseConfig();if(!config||!config.apiKey){throw new Error('Configuração de autenticação não encontrada')}const[appMod,authMod]=await Promise.all([import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js')]);const app=appMod.getApps().length?appMod.getApp():appMod.initializeApp(config);fbAuthInstance=authMod.getAuth(app);fbGoogleAuthProvider=new authMod.GoogleAuthProvider();fbGoogleAuthProvider.addScope('https://www.googleapis.com/auth/drive.file');fbGoogleAuthProvider.setCustomParameters({prompt:'select_account'});authMod.onAuthStateChanged(fbAuthInstance,(user)=>{currentGoogleDriveUser=user;if(!user)cachedDriveAccessToken=null;updateDriveUI()});return fbAuthInstance}catch(err){console.error('Init Google Drive Auth erro:',err);throw err}}
+
+async function googleDriveLogin(){if(isDriveSigningIn)return;isDriveSigningIn=true;if($('googleDriveLoginBtn'))$('googleDriveLoginBtn').disabled=true;try{await initGoogleDriveAuth();if(!fbAuthInstance||!fbGoogleAuthProvider)throw new Error('Não foi possível inicializar a autenticação do Google.');const authMod=await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');const result=await authMod.signInWithPopup(fbAuthInstance,fbGoogleAuthProvider);const credential=authMod.GoogleAuthProvider.credentialFromResult(result);cachedDriveAccessToken=credential?credential.accessToken:null;currentGoogleDriveUser=result.user;haptic(20);toast(`Conectado ao Google Drive como ${result.user.displayName||result.user.email||'Usuário Google'}!`);updateDriveUI();if(db.settings.driveAutoSync)triggerDriveAutoSync(true)}catch(err){console.error('Login Drive erro:',err);if(err.code==='auth/popup-closed-by-user'){toast('Conexão cancelada.')}else if(err.code==='auth/popup-blocked'){toast('Pop-up bloqueado. Permita janelas pop-up para conectar com o Google Drive.')}else{toast(`Erro ao conectar ao Google Drive: ${err.message||'Falha de login'}`)}}finally{isDriveSigningIn=false;if($('googleDriveLoginBtn'))$('googleDriveLoginBtn').disabled=false}}
+
+async function googleDriveLogout(){try{if(fbAuthInstance){const authMod=await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js');await authMod.signOut(fbAuthInstance)}cachedDriveAccessToken=null;currentGoogleDriveUser=null;updateDriveUI();haptic(15);toast('Desconectado do Google Drive.')}catch(err){console.error('Logout Drive erro:',err)}}
+
+function updateDriveUI(){const isAuth=Boolean(currentGoogleDriveUser&&cachedDriveAccessToken);if($('driveUnauthBox'))$('driveUnauthBox').classList.toggle('hidden',isAuth);if($('driveAuthBox'))$('driveAuthBox').classList.toggle('hidden',!isAuth);if($('driveStatusBadge')){$('driveStatusBadge').textContent=isAuth?'Conectado':'Desconectado';$('driveStatusBadge').className=isAuth?'pill ok':'pill'}if(isAuth&&currentGoogleDriveUser){if($('driveUserAvatar'))$('driveUserAvatar').src=currentGoogleDriveUser.photoURL||'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%238b5cf6"><path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 12c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z"/></svg>';if($('driveUserName'))$('driveUserName').textContent=currentGoogleDriveUser.displayName||'Usuário Google';if($('driveUserEmail'))$('driveUserEmail').textContent=currentGoogleDriveUser.email||''}if($('driveAutoSyncToggle'))$('driveAutoSyncToggle').checked=Boolean(db.settings.driveAutoSync);if($('driveLastSyncText')){if(db.settings.driveLastSync){const d=new Date(db.settings.driveLastSync);$('driveLastSyncText').textContent=`${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} (${db.settings.driveLastSyncCount||0} perfis)`;$('driveLastSyncText').style.color='#34d399'}else{$('driveLastSyncText').textContent='Nenhum backup realizado ainda';$('driveLastSyncText').style.color='#94a3b8'}}if($('driveOpenFileLink')){if(db.settings.driveFileId){$('driveOpenFileLink').href=`https://drive.google.com/file/d/${db.settings.driveFileId}/view`;$('driveOpenFileLink').classList.remove('hidden')}else{$('driveOpenFileLink').classList.add('hidden')}}}
+
+function getVoicesBackupPayload(){const profiles=db.profiles||[];return{app:'VozForge Studio',type:'vozforge_custom_voices_backup',version:'1.0',exportedAt:new Date().toISOString(),totalProfiles:profiles.length,profiles:profiles.map(p=>({id:p.id,name:p.name,size:p.size,at:p.at,data:p.data,type:p.type||'clone_ultra',baseVoice:p.baseVoice||'Kore'})),catalogVoices:VOICES.map(v=>({voice:v[0],style:v[1]})),selectedVoice:db.selectedVoice}}
+
+async function findDriveBackupFile(token){const q=encodeURIComponent("name = 'vozforge-perfis-backup.json' and trashed = false");const res=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,size,webViewLink)&spaces=drive`,{headers:{Authorization:`Bearer ${token}`}});if(!res.ok){if(res.status===401){cachedDriveAccessToken=null;updateDriveUI();throw new Error('Sessão do Google Drive expirada. Conecte-se novamente.')}const errText=await res.text();throw new Error(`Erro ao consultar Google Drive (${res.status}): ${errText}`)}const data=await res.json();return(data.files&&data.files.length>0)?data.files[0]:null}
+
+async function uploadToDrive(token,payload,existingFileId=null){const jsonContent=JSON.stringify(payload,null,2);if(existingFileId){const res=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`,{method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json; charset=UTF-8'},body:jsonContent});if(!res.ok){const errText=await res.text();throw new Error(`Erro ao atualizar backup remoto (${res.status}): ${errText}`)}return await res.json()}else{const metadata={name:'vozforge-perfis-backup.json',mimeType:'application/json',description:'Backup automático de perfis de voz do VozForge Studio'};const boundary='-------VozForgeBoundary'+Math.random().toString(36).substring(2);const delimiter=`\r\n--${boundary}\r\n`;const closeDelimiter=`\r\n--${boundary}--`;const body=delimiter+'Content-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+delimiter+'Content-Type: application/json; charset=UTF-8\r\n\r\n'+jsonContent+closeDelimiter;const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':`multipart/related; boundary=${boundary}`},body:body});if(!res.ok){const errText=await res.text();throw new Error(`Erro ao criar arquivo no Google Drive (${res.status}): ${errText}`)}return await res.json()}}
+
+async function downloadFromDrive(token,fileId){const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${token}`}});if(!res.ok){const errText=await res.text();throw new Error(`Erro ao baixar backup (${res.status}): ${errText}`)}return await res.json()}
+
+function triggerDriveAutoSync(immediate=false){if(!db.settings.driveAutoSync)return;if(!cachedDriveAccessToken)return;if(driveAutoSyncTimer){clearTimeout(driveAutoSyncTimer);driveAutoSyncTimer=null}const delay=immediate?150:1800;driveAutoSyncTimer=setTimeout(async()=>{try{if($('driveStatusBadge'))$('driveStatusBadge').textContent='Sincronizando...';const existing=await findDriveBackupFile(cachedDriveAccessToken);const payload=getVoicesBackupPayload();const savedFile=await uploadToDrive(cachedDriveAccessToken,payload,existing?existing.id:null);db.settings.driveLastSync=new Date().toISOString();db.settings.driveLastSyncCount=db.profiles.length;if(savedFile&&savedFile.id)db.settings.driveFileId=savedFile.id;saveDb();updateDriveUI();event('drive_auto_sync',`${db.profiles.length} perfis`)}catch(err){console.warn('Auto-sync Google Drive falhou:',err);if($('driveStatusBadge')){$('driveStatusBadge').textContent='Erro ao sincronizar';$('driveStatusBadge').className='pill'}}},delay)}
+
+async function executeDriveManualBackup(){if(!cachedDriveAccessToken){toast('Conecte sua conta do Google Drive primeiro.');await googleDriveLogin();if(!cachedDriveAccessToken)return}const btn=$('driveSyncNowBtn');const orig=btn.innerHTML;btn.disabled=true;btn.textContent='Verificando Drive...';try{const existing=await findDriveBackupFile(cachedDriveAccessToken);const profileCount=(db.profiles||[]).length;const proceedWithBackup=async()=>{btn.textContent='Enviando para nuvem...';try{const payload=getVoicesBackupPayload();const savedFile=await uploadToDrive(cachedDriveAccessToken,payload,existing?existing.id:null);db.settings.driveLastSync=new Date().toISOString();db.settings.driveLastSyncCount=profileCount;if(savedFile&&savedFile.id)db.settings.driveFileId=savedFile.id;saveDb();updateDriveUI();event('drive_manual_backup',`${profileCount} perfis`);haptic(25);toast(`☁️ Backup concluído no Google Drive! (${profileCount} perfis salvos)`)}catch(err){console.error('Erro no backup:',err);toast(`Falha no backup: ${err.message||'Erro desconhecido'}`)}finally{btn.disabled=false;btn.innerHTML=orig}};if(existing){btn.disabled=false;btn.innerHTML=orig;showDriveConfirmModal({title:'Atualizar backup no Google Drive',message:`Já existe um backup de vozes salvo no Google Drive (modificado em ${new Date(existing.modifiedTime).toLocaleString('pt-BR')}).<br><br>Deseja <b>substituir o arquivo existente</b> com os <b>${profileCount} perfis de voz</b> deste dispositivo?`,okText:'Confirmar e Salvar',onConfirm:proceedWithBackup})}else{await proceedWithBackup()}}catch(err){btn.disabled=false;btn.innerHTML=orig;console.error('Erro:',err);toast(`Falha ao conectar com o Drive: ${err.message}`)}}
+
+async function executeDriveRestore(){if(!cachedDriveAccessToken){toast('Conecte sua conta do Google Drive primeiro.');await googleDriveLogin();if(!cachedDriveAccessToken)return}const btn=$('driveRestoreBtn');const orig=btn.innerHTML;btn.disabled=true;btn.textContent='Buscando backup...';try{const existing=await findDriveBackupFile(cachedDriveAccessToken);if(!existing){btn.disabled=false;btn.innerHTML=orig;return toast('Nenhum backup de vozes encontrado no seu Google Drive.')}btn.textContent='Baixando dados...';const remoteData=await downloadFromDrive(cachedDriveAccessToken,existing.id);const incoming=Array.isArray(remoteData)?remoteData:(remoteData.profiles||[]);if(!Array.isArray(incoming)||!incoming.length){btn.disabled=false;btn.innerHTML=orig;return toast('O backup no Google Drive não contém perfis de voz válidos.')}btn.disabled=false;btn.innerHTML=orig;showDriveConfirmModal({title:'Restaurar perfis do Google Drive',message:`Encontrado backup no Google Drive com <b>${incoming.length} perfis de voz</b> (modificado em ${new Date(existing.modifiedTime).toLocaleString('pt-BR')}).<br><br>Deseja restaurar e mesclar estes perfis com os perfis locais deste dispositivo?`,okText:'Restaurar e Mesclar',onConfirm:()=>{let added=0,updated=0;incoming.forEach(p=>{if(!p||!p.name)return;const idx=db.profiles.findIndex(x=>x.id===p.id||(x.name===p.name&&x.size===p.size));if(idx>=0){if(p.data&&!db.profiles[idx].data){db.profiles[idx].data=p.data;updated++}}else{db.profiles.push({id:p.id||crypto.randomUUID(),name:p.name,size:p.size||0,data:p.data||'',type:p.type||'clone_ultra',baseVoice:p.baseVoice||'Kore',at:p.at||new Date().toISOString()});added++}});saveDb();renderProfiles();renderAdmin();renderVoiceFilters();renderVoices();updateStats();event('drive_restored',`${added} adicionados, ${updated} atualizados`);haptic(25);toast(`✅ Restauração finalizada: ${added} perfil(is) novo(s) importado(s)!`)}})}catch(err){btn.disabled=false;btn.innerHTML=orig;console.error('Erro ao restaurar:',err);toast(`Falha na restauração: ${err.message}`)}}
+
+if($('googleDriveLoginBtn'))$('googleDriveLoginBtn').onclick=googleDriveLogin;
+if($('driveLogoutBtn'))$('driveLogoutBtn').onclick=googleDriveLogout;
+if($('driveSyncNowBtn'))$('driveSyncNowBtn').onclick=executeDriveManualBackup;
+if($('driveRestoreBtn'))$('driveRestoreBtn').onclick=executeDriveRestore;
+if($('driveAutoSyncToggle'))$('driveAutoSyncToggle').onchange=(e)=>{db.settings.driveAutoSync=e.target.checked;saveDb();if(db.settings.driveAutoSync){triggerDriveAutoSync(true);toast('Backup automático remoto ativado!')}else{toast('Backup automático desativado.')}};
+initGoogleDriveAuth();
+if($('downloadBtn')&&!$('downloadBtn').onclick){
+  $('downloadBtn').onclick=()=>{
+    if(!currentAudioUrl){toast('Gere uma narração no estúdio primeiro para baixar em WAV.');return}
+    const a=document.createElement('a');
+    a.href=currentAudioUrl;
+    a.download=`vozforge-narracao-${Date.now()}.wav`;
+    a.click();
+  };
+}
+if($('downloadMp3Btn')&&!$('downloadMp3Btn').onclick){
+  $('downloadMp3Btn').onclick=async()=>{
+    if(!currentFinalPcm&&!currentWavBlob){
+      toast('Gere uma narração no estúdio primeiro para baixar em MP3.');
+      return;
+    }
+  };
+}
 $('voiceTable').innerHTML=VOICES.map(v=>`<tr><td><b>${v[0]}</b></td><td>${v[1]}</td></tr>`).join('');renderVoiceFilters();renderVoices();ensureGenerationCovers();renderGenerations();renderHomeRecent();updateTextSplitting();updateStats();setupHorizontalScrollHelpers();
 try{
   const hashScreen=location.hash?location.hash.replace('#',''):'';

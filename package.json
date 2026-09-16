@@ -10,8 +10,10 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@google/genai": "^2.4.0",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "lamejs": "^1.2.1"
   },
   "devDependencies": {
     "sharp": "^0.35.4"

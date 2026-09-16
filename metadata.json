@@ -1,6 +1,6 @@
 {
   "name": "VozForge Studio",
-  "description": "Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS",
+  "description": "Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS, com clonagem de vozes e sincronização remota via Google Drive",
   "requestFramePermissions": [
     "microphone"
   ],

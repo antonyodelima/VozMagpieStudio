@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import sharp from 'sharp';
@@ -22,6 +23,31 @@ app.get('/api/config', (req, res) => {
   res.json({
     hasServerKey: Boolean(process.env.GEMINI_API_KEY)
   });
+});
+
+// Firebase / OAuth configuration endpoint
+app.get('/api/firebase-config', (req, res) => {
+  try {
+    const configPath = path.join(__dirname, 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, 'utf8');
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(raw);
+    }
+    return res.status(404).json({ error: 'Configuração do Firebase não encontrada' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Audio MP3 conversion library vendor route
+app.get('/vendor/lame.min.js', (req, res) => {
+  const p = path.join(__dirname, 'node_modules', 'lamejs', 'lame.min.js');
+  if (fs.existsSync(p)) {
+    res.setHeader('Content-Type', 'application/javascript');
+    return res.sendFile(p);
+  }
+  return res.status(404).send('// lame.min.js not found');
 });
 
 // Procedural high-resolution studio cover generator
@@ -197,16 +223,63 @@ app.post('/api/interactions', async (req, res) => {
       }
     }
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify(payload)
-    });
+    const doCallInteractions = async () => {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      return { status: response.status, headers: response.headers, data };
+    };
 
-    const data = await response.json();
+    let result = await doCallInteractions();
+
+    // Handle 429 Resource Exhausted / Rate Limit
+    if (result.status === 429) {
+      const errMsg = result.data?.error?.message || '';
+      let retrySec = null;
+      const retryHeader = result.headers?.get ? result.headers.get('retry-after') : null;
+      if (retryHeader) {
+        const parsed = parseFloat(retryHeader);
+        if (!isNaN(parsed) && parsed > 0) retrySec = parsed;
+      }
+      if (!retrySec) {
+        const match = errMsg.match(/Please retry in ([0-9.]+)s/i);
+        if (match && match[1]) {
+          retrySec = parseFloat(match[1]);
+        }
+      }
+
+      // If retry duration is brief (<= 8.5s), wait on server and retry once automatically
+      if (retrySec !== null && retrySec <= 8.5) {
+        const waitMs = Math.ceil(retrySec * 1000) + 500;
+        await new Promise(r => setTimeout(r, waitMs));
+        result = await doCallInteractions();
+      }
+
+      // If still 429, decorate error with friendly localized message and retry metadata
+      if (result.status === 429) {
+        const finalMsg = result.data?.error?.message || '';
+        const match2 = finalMsg.match(/Please retry in ([0-9.]+)s/i);
+        const finalSec = match2 && match2[1] ? Math.ceil(parseFloat(match2[1])) : (retrySec ? Math.ceil(retrySec) : 10);
+        return res.status(429).json({
+          error: {
+            code: 429,
+            status: 'RESOURCE_EXHAUSTED',
+            isQuota: true,
+            retryAfterSeconds: finalSec,
+            message: `Limite temporário de requisições por minuto da API atingido (10 req/min). Aguarde ${finalSec}s.`,
+            rawDetails: finalMsg
+          }
+        });
+      }
+    }
+
+    const data = result.data;
 
     // Normalize audio output so data.output_audio.data is always accessible to clients
     if (data && !data.output_audio && Array.isArray(data.steps)) {
@@ -224,7 +297,7 @@ app.post('/api/interactions', async (req, res) => {
       }
     }
 
-    return res.status(response.status).json(data);
+    return res.status(result.status).json(data);
   } catch (error) {
     console.error('Error in /api/interactions proxy:', error);
     return res.status(500).json({
