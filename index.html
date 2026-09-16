@@ -122,6 +122,7 @@ h3{font-size:16px;margin:0 0 10px}
 .voice-action-btn.del{color:#fda4af;border-color:#f43f5e33}
 .voice-action-btn.del:hover{background:#f43f5e22;border-color:#f43f5e;color:#fff}
 .voice-action-btn.playing{background:#8b5cf633;border-color:#8b5cf6;color:#d8b4fe;box-shadow:0 0 0 2px #8b5cf655;animation:pulsePreview 1.4s infinite}
+.voice-action-btn.loading{background:#38bdf822;border-color:#38bdf888;color:#38bdf8;animation:pulsePreview 0.9s infinite}
 @keyframes pulsePreview{0%,100%{box-shadow:0 0 0 2px #8b5cf666}50%{box-shadow:0 0 0 5px #8b5cf622}}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 5px #8b5cf622;flex:none}
 .voice:not(.selected) .dot{background:#25324d;box-shadow:none}
@@ -246,12 +247,35 @@ h3{font-size:16px;margin:0 0 10px}
 #adminPanel .gsi-material-button{max-width:none;width:100%}
 
 /* Studio: Two-column on desktop, Single-column fluid on tablet and phone */
-.studio-screen>.stack{gap:16px;width:100%}
+.studio-screen{
+  padding-bottom:calc(96px + env(safe-area-inset-bottom, 20px));
+}
+.studio-screen>.stack{
+  gap:16px;
+  width:100%;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px));
+}
 .studio-screen .field textarea{min-height:240px}
 .studio-screen .auto-split-card,.studio-screen .speed-card{box-shadow:none;width:100%}
 .studio-screen .voice-list{grid-template-columns:repeat(2,minmax(0,1fr))}
-.studio-screen .player{box-shadow:0 12px 36px #00000030;border-color:#8b5cf655}
-.studio-screen .studio-actions{position:sticky;bottom:72px;z-index:8;padding:10px;margin:0;border:1px solid #ffffff12;border-radius:15px;background:#0b1223e8;backdrop-filter:blur(12px)}
+.studio-screen #playerBox{
+  box-shadow:0 12px 36px #00000030;
+  border-color:#8b5cf655;
+  margin-bottom:env(safe-area-inset-bottom, 20px);
+}
+.studio-screen .studio-actions{
+  position:sticky;
+  bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+  z-index:15;
+  padding:10px 12px;
+  margin:4px 0 8px;
+  border:1px solid #8b5cf644;
+  border-radius:16px;
+  background:#080d1bf2;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 -6px 28px #00000066, 0 4px 16px #00000044;
+}
 
 @media(min-width:861px){
   .studio-screen>.stack{display:grid;grid-template-columns:minmax(0,1.13fr) minmax(330px,.87fr);align-items:start}
@@ -313,12 +337,24 @@ h3{font-size:16px;margin:0 0 10px}
   .shortcut-btn b{font-size:13px}
   .shortcut-btn .hint{font-size:11px}
   
-  .studio-screen>.stack{display:grid;grid-template-columns:1fr;gap:12px;width:100%}
-  .studio-screen>.stack>*{grid-column:auto!important;grid-row:auto!important;width:100%}
+  .studio-screen{
+    padding-bottom:calc(100px + env(safe-area-inset-bottom, 20px));
+  }
+  .studio-screen>.stack{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    width:100%;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .studio-screen>.stack>*{
+    width:100%;
+    box-sizing:border-box;
+  }
   .studio-screen .field textarea{min-height:160px;font-size:15px}
-  .studio-screen .card{padding:13px;border-radius:14px}
+  .studio-screen .card{padding:14px;border-radius:16px}
   .studio-screen .voice-list{grid-template-columns:1fr;gap:8px}
-  .voice{min-height:48px;padding:10px 12px}
+  .voice{min-height:50px;padding:10px 12px;border-radius:12px}
   
   /* Speed presets on mobile: 4 clean equal columns */
   #speedPresetsChips{
@@ -344,29 +380,75 @@ h3{font-size:16px;margin:0 0 10px}
   .studio-actions{display:flex;gap:8px;width:100%}
   .studio-screen .studio-actions{
     position:sticky;
-    bottom:calc(60px + env(safe-area-inset-bottom,0px));
-    z-index:10;
-    margin:0;
-    padding:8px;
-    background:#080d1bf5;
-    backdrop-filter:blur(14px);
-    border:1px solid #8b5cf644;
-    border-radius:14px;
-    box-shadow:0 -4px 20px #00000055;
+    bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+    z-index:15;
+    margin:6px 0 4px;
+    padding:10px 12px;
+    background:#080d1bee;
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:1px solid #8b5cf655;
+    border-radius:16px;
+    box-shadow:0 -6px 28px #00000066, 0 4px 16px #00000044;
   }
-  .studio-actions #generateBtn{flex:2;min-height:46px;font-size:14.5px}
-  .studio-actions #clearStudio{flex:1;min-height:46px;font-size:13.5px}
+  .studio-actions #generateBtn{flex:2;min-height:48px;font-size:14.5px}
+  .studio-actions #clearStudio{flex:1;min-height:48px;font-size:13.5px}
   
   .auto-split-header{display:flex;flex-direction:column;align-items:stretch;gap:10px}
   .auto-split-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-left:0;width:100%}
   .auto-split-controls select{flex:1;min-width:0}
   .auto-split-controls button{flex-shrink:0;white-space:nowrap}
   
-  .player-top{display:flex;gap:10px;align-items:flex-start}
+  /* Audio Player Box on Mobile */
+  .studio-screen #playerBox,
+  .studio-screen .player{
+    background:#0d152a;
+    border:1px solid #8b5cf644;
+    border-radius:16px;
+    padding:16px 14px;
+    margin-top:8px;
+    margin-bottom:env(safe-area-inset-bottom, 20px);
+    box-shadow:0 8px 30px #00000055;
+  }
+  .player-top{display:flex;gap:12px;align-items:center}
   .player-title-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between}
-  .player-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important;width:100%}
-  .player-actions #downloadBtn{grid-column:1 / -1;width:100%;min-height:42px;font-size:12.5px}
-  .player-actions #viewPlayerBlocksBtn,.player-actions #downloadCoverBtn{min-height:38px;font-size:11px;padding:6px 8px;width:100%}
+  .studio-screen .player audio{
+    width:100%;
+    min-height:46px;
+    margin:10px 0 12px;
+    border-radius:10px;
+  }
+  .player-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+    width:100%!important;
+    margin-top:12px!important;
+  }
+  .player-actions #downloadMp3Btn{
+    width:100%;
+    min-height:42px;
+    font-size:12.5px;
+    justify-content:center;
+  }
+  .player-actions #downloadBtn{
+    width:100%;
+    min-height:42px;
+    font-size:12.5px;
+    justify-content:center;
+  }
+  .player-actions #viewPlayerBlocksBtn,.player-actions #downloadCoverBtn{
+    min-height:38px;
+    font-size:11px;
+    padding:6px 8px;
+    width:100%;
+    justify-content:center;
+  }
+  
+  #studioGenerationsSection{
+    margin-top:14px;
+    padding-bottom:12px;
+  }
   
   .gen-item{display:grid;grid-template-columns:52px 1fr;grid-template-rows:auto auto;gap:8px 10px;align-items:start;padding:10px}
   .gen-item .gen-thumb{grid-column:1;grid-row:1;width:52px;height:52px}
@@ -431,7 +513,7 @@ h3{font-size:16px;margin:0 0 10px}
 <header class="top"><div class="topline"><div class="brand"><button type="button" class="icon-btn back-btn hidden" id="backNavBtn" title="Voltar para a página anterior" aria-label="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button><div class="mark"><div class="wave"><i></i><i></i><i></i><i></i><i></i></div></div><div><h1>VozForge Studio</h1><small>Estúdio de voz com IA</small></div></div><div class="top-actions"><button type="button" class="btn ghost small hidden" id="installPwaBtn" style="border-color:var(--primary);color:#d9ccff;gap:6px" title="Instalar aplicativo no Android">📲 <span class="install-text">Instalar</span></button><span class="badge" id="statusBadge">online</span><button class="icon-btn" id="settingsBtn" title="Configurações">⚙</button></div></div></header>
 <main class="app content">
 <section class="screen" data-screen="home"><div class="hero"><h2>Transforme texto em uma voz natural.</h2><p>Crie narrações, protótipos e audiolivros com as vozes TTS do Gemini. Clone sua própria voz com fidelidade ultra-realista ou suba uma gravação limpa da sua voz.</p><div class="actions"><button class="btn primary" id="homeHeroCloneBtn">🎙️ Clonar minha voz</button><label class="btn secondary" for="homeAudioFileInput" id="homeHeroUploadBtn" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📤 Subir áudio da voz</label><button class="btn ghost" data-go="studio">Estúdio</button><button class="btn ghost" data-go="voices">Meus perfis</button></div></div><div class="section voice-clone-hero card" style="background:radial-gradient(circle at 88% 12%,#8b5cf635,transparent 55%),linear-gradient(135deg,#0d162d,#090e1e);border:1px solid #8b5cf655;padding:18px;border-radius:18px;box-shadow:0 8px 30px #00000044"><div class="row" style="margin-bottom:8px"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h3 style="margin:0;font-size:16px;color:#fff">🧬 Clonagem de Voz Ultra-Realista</h3><span class="pill ok" style="font-size:10px;padding:2px 7px">Fidelidade Acústica</span></div><p class="hint" style="margin:0;font-size:12.5px;color:#cdd6eb;line-height:1.45">Grave sua própria voz no microfone ou envie um áudio limpo da sua voz para criar seu perfil vocal ultra-realista e usar nas narrações.</p></div></div><div class="shortcuts-grid" style="margin-top:12px"><button type="button" class="card secondary shortcut-btn" id="homeCardCloneMicBtn" style="text-align:left;background:#121b35;border-color:#8b5cf666;cursor:pointer;padding:14px"><div class="row" style="margin:0 0 4px"><b style="font-size:13.5px;color:#fff">🎙️ Clonar Minha Própria Voz</b><span class="pill ok" style="font-size:10.5px">Microfone</span></div><div class="hint" style="font-size:11.5px;color:#c7d0e8">Grave de 10 a 30 segundos com dicção clara para sintetizar sua voz</div></button><label class="card secondary shortcut-btn" for="homeAudioFileInput" id="homeCardUploadAudioBtn" style="text-align:left;background:#121b35;border-color:#38bdf855;cursor:pointer;padding:14px"><div class="row" style="margin:0 0 4px"><b style="font-size:13.5px;color:#fff">📤 Subir Áudio da Minha Voz</b><span class="pill" style="font-size:10.5px;border-color:#38bdf866;color:#93c5fd">Arquivo</span></div><div class="hint" style="font-size:11.5px;color:#c7d0e8">Importe um áudio (.wav, .mp3, .m4a) da sua voz para clonagem ultra-realista</div></label></div><input id="homeAudioFileInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac" class="hidden"></div><div class="grid stat-grid"><div class="card stat"><strong id="statGenerations">0</strong><span>gerações</span></div><div class="card stat"><strong id="statProfiles">0</strong><span>perfis de voz</span></div><div class="card stat"><strong id="statKeys">0</strong><span>chaves salvas</span></div></div><div class="section"><div class="row"><h3>Atalhos</h3></div><div class="shortcuts-grid"><button class="card secondary shortcut-btn" id="homeShortcutCloneBtn" style="text-align:left"><b>🧬 Clonar minha voz</b><div class="hint">Microfone ou áudio próprio</div></button><button class="card secondary shortcut-btn" data-go="studio" style="text-align:left"><b>🎙️ Nova narração</b><div class="hint">Escreva e gere áudio</div></button><button class="card secondary shortcut-btn" data-go="keys" style="text-align:left"><b>🔑 Adicionar API</b><div class="hint">Conecte sua chave Gemini</div></button><button class="card secondary shortcut-btn" data-go="admin" style="text-align:left"><b>🛡️ Administração</b><div class="hint">Painel local do app</div></button></div></div><div class="section" id="homeRecentSection"><div class="row" style="margin-bottom:10px"><h3>Projetos Recentes</h3><button type="button" class="btn ghost small" data-go="studio">Ver todos no estúdio</button></div><div id="homeRecentList" class="list"></div></div><div class="section notice info"><b>Privacidade & Ética:</b> o áudio da sua voz fica protegido 100% neste dispositivo. Utilize apenas sua própria voz ou áudios com consentimento.</div></section>
-<section class="screen hidden studio-screen" data-screen="studio"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Estúdio</h2></div><p class="sub">Escolha uma voz, descreva a performance e gere um WAV.</p><div class="stack"><div class="field"><div class="row" style="margin-bottom:2px"><label for="textInput" style="margin:0">Texto da Narração</label><span class="pill" id="splitStatusPill">1 bloco</span></div><textarea id="textInput" placeholder="Digite ou cole o texto que você quer narrar... (ex: roteiros, audiobooks, artigos)"></textarea><div class="row"><span class="hint"><span id="charCount">0</span> caracteres · <span id="chunkCountNotice">1 bloco de narração</span></span><span class="pill" id="modelPill">Gemini TTS Preview</span></div></div><div class="card auto-split-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="auto-split-header"><label class="auto-split-toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;user-select:none"><input id="autoSplitToggle" type="checkbox" checked style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"><span>Dividir automaticamente textos longos em blocos</span></label><div class="auto-split-controls"><label for="chunkSizeSelect" class="hint" style="margin:0;font-size:12px;white-space:nowrap">Máx./bloco:</label><select id="chunkSizeSelect" style="width:auto;padding:5px 8px;font-size:12px;background:#080d1b;border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer"><option value="1000">1.000 caracteres</option><option value="2000" selected>2.000 caracteres (recomendado)</option><option value="3000">3.000 caracteres</option><option value="4000">4.000 caracteres (máximo)</option></select><button type="button" class="btn ghost small" id="toggleBlocksPreviewBtn" style="padding:4px 10px;min-height:30px;font-size:11px">Ver blocos (<span id="blocksBadgeCount">1</span>) ▾</button></div></div><div id="blocksPreviewPanel" class="hidden" style="margin-top:12px;border-top:1px solid #ffffff12;padding-top:10px"><div class="hint" style="margin-bottom:8px">Os blocos abaixo serão narrados sequencialmente com a voz selecionada e concatenados no player final:</div><div id="blocksPreviewList" style="display:grid;gap:8px;max-height:220px;overflow-y:auto"></div></div></div><div class="card"><div class="row" style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Voz</h3><span class="pill" id="voiceCountBadge">30 vozes</span><span class="pill ok" id="selectedVoiceBadge" style="font-weight:600">Kore (Firme)</span></div><div style="display:flex;gap:6px"><button type="button" class="btn primary small" id="studioHeaderCloneBtn" style="font-size:11.5px;padding:3px 9px;min-height:30px">🧬 Clonar voz</button><button class="btn ghost small" data-go="voices">Meus perfis</button></div></div><div id="clonedVoiceActiveBanner" class="notice info hidden" style="background:#140e2b;border-color:#8b5cf688;margin-bottom:12px;padding:10px 12px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="font-size:22px;flex-shrink:0">🧬</span><div style="min-width:0"><div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>Voz clonada ativa para narração:</span><span id="activeClonedName" class="pill ok" style="font-size:11px;padding:1px 7px;background:#8b5cf633;border-color:#8b5cf6">Minha Voz</span></div><div class="hint" style="margin-top:2px;font-size:11px;color:#c4b5fd">Seus textos serão narrados com esta voz clonada (âncora acústica: <span id="activeClonedBase">Kore</span>).</div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button type="button" class="btn danger small" id="deleteActiveClonedVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Excluir este perfil de voz clonada">🗑️ Excluir voz</button><button type="button" class="btn ghost small" id="switchCatalogVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Restaurar voz de catálogo">Restaurar catálogo</button></div></div><div class="search-box" style="margin-bottom:12px"><span class="search-icon">🔍</span><input id="voiceSearchInput" type="text" placeholder="Buscar por voz ou estilo (ex: Firme, Brilhante, Zephyr)..." autocomplete="off"><button id="clearVoiceSearch" class="search-clear hidden" title="Limpar busca">✕</button></div><div style="margin-bottom:12px"><div class="row" style="margin-bottom:6px"><div class="hint" style="font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#cdd6eb;margin:0">Filtrar por estilo:</div><div style="display:flex;gap:4px"><button type="button" class="chip-nav-btn" id="voiceFilterScrollLeft" title="Rolar estilos para a esquerda" aria-label="Rolar estilos para a esquerda">‹</button><button type="button" class="chip-nav-btn" id="voiceFilterScrollRight" title="Rolar estilos para a direita" aria-label="Rolar estilos para a direita">›</button></div></div><div class="chip-bar-wrap"><div id="voiceFilterChips" class="chip-bar"></div></div></div><div id="voiceSelectList" class="voice-list"></div></div><div class="field"><label for="directionInput">Direção de performance (opcional)</label><input id="directionInput" placeholder="Ex.: fale com energia, em português brasileiro, ritmo calmo" value="Fale naturalmente, com dicção clara."></div><div class="card speed-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="row" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><label for="speedSlider" style="font-size:13px;font-weight:700;margin:0;color:#cdd6eb">⚡ Velocidade de Reprodução e Fala</label><span class="pill ok" id="speedValueBadge" style="font-weight:700;min-width:44px;text-align:center">1.0x</span></div><button type="button" class="btn ghost small" id="resetSpeedBtn" style="padding:2px 8px;min-height:28px;font-size:11px" title="Redefinir para velocidade padrão (1.0x)">1.0x Padrão</button></div><div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">0.5x</span><input id="speedSlider" type="range" min="0.5" max="2.0" step="0.05" value="1.0" style="flex:1;accent-color:var(--primary);cursor:pointer;height:6px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">2.0x</span></div><div class="chip-bar-wrap"><div class="chip-bar" id="speedPresetsChips" style="padding:0"><button type="button" class="chip" data-speed="0.75" style="padding:4px 10px;min-height:30px;font-size:11px">0.75x (Lento)</button><button type="button" class="chip active" data-speed="1.0" style="padding:4px 10px;min-height:30px;font-size:11px">1.0x (Normal)</button><button type="button" class="chip" data-speed="1.25" style="padding:4px 10px;min-height:30px;font-size:11px">1.25x (Dinâmico)</button><button type="button" class="chip" data-speed="1.5" style="padding:4px 10px;min-height:30px;font-size:11px">1.5x (Rápido)</button></div></div></div><div class="actions studio-actions"><button class="btn primary" id="generateBtn">✨ Gerar áudio</button><button class="btn secondary" id="clearStudio">Limpar</button></div><div id="generationStatus" class="hidden"></div><div id="playerBox" class="player hidden"><div class="player-top" style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div id="playerCoverThumb" class="gen-thumb" style="width:64px;height:64px;border-radius:14px" title="Personalizar capa com IA"><img id="playerCoverImg" src="" alt="Capa da narração" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="player-meta" style="min-width:0;flex:1"><div class="player-title-row row" style="margin-bottom:4px"><b id="playerProjectTitle" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Narração gerada</b><button type="button" class="btn ghost small" id="openCoverModalBtn" title="Personalizar capa">🎨 Capa com IA</button></div><div class="hint" id="audioMeta"></div></div></div><audio id="audioPlayer" controls></audio><div id="playerBlocksList" class="hidden" style="margin-top:10px;background:#080d1b;border:1px solid var(--line);border-radius:12px;padding:10px;max-height:160px;overflow-y:auto;font-size:12px"></div><div class="actions player-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary small" id="downloadMp3Btn" title="Baixar áudio compactado em MP3 para menor tamanho e compartilhamento fácil">⬇️ Baixar MP3 <span class="pill ok" style="font-size:9.5px;padding:1px 5px;background:#34d39922;border-color:#34d399;color:#6ee7b7">Compacto</span></button><button type="button" class="btn secondary small" id="downloadBtn" title="Baixar áudio WAV original sem compressão">⬇️ Baixar WAV</button><button type="button" class="btn ghost small" id="viewPlayerBlocksBtn">📑 Ver blocos concatenados</button><button type="button" class="btn ghost small" id="downloadCoverBtn">🖼️ Baixar Capa</button></div></div><div class="section" id="studioGenerationsSection"><div class="row" style="margin-bottom:12px"><div><h3 style="margin:0">Projetos de Narração</h3><span class="hint">Narrações com capa personalizada</span></div><span class="pill" id="genCountBadge">0 projetos</span></div><div id="generationsList" class="list"></div></div><div class="notice warn">Este app não deve ser usado para imitar pessoas reais sem consentimento, fraude, chamadas enganosas ou autenticação por voz.</div></div></section>
+<section class="screen hidden studio-screen" data-screen="studio"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Estúdio</h2></div><p class="sub">Escolha uma voz, descreva a performance e gere um WAV.</p><div class="stack"><div class="field"><div class="row" style="margin-bottom:2px"><label for="textInput" style="margin:0">Texto da Narração</label><span class="pill" id="splitStatusPill">1 bloco</span></div><textarea id="textInput" placeholder="Digite ou cole o texto que você quer narrar... (ex: roteiros, audiobooks, artigos)"></textarea><div class="row"><span class="hint"><span id="charCount">0</span> caracteres · <span id="chunkCountNotice">1 bloco de narração</span></span><span class="pill" id="modelPill">Gemini TTS Preview</span></div></div><div class="card auto-split-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="auto-split-header"><label class="auto-split-toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;user-select:none"><input id="autoSplitToggle" type="checkbox" checked style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"><span>Dividir automaticamente textos longos em blocos</span></label><div class="auto-split-controls"><label for="chunkSizeSelect" class="hint" style="margin:0;font-size:12px;white-space:nowrap">Máx./bloco:</label><select id="chunkSizeSelect" style="width:auto;padding:5px 8px;font-size:12px;background:#080d1b;border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer"><option value="1000">1.000 caracteres</option><option value="2000" selected>2.000 caracteres (recomendado)</option><option value="3000">3.000 caracteres</option><option value="4000">4.000 caracteres (máximo)</option></select><button type="button" class="btn ghost small" id="toggleBlocksPreviewBtn" style="padding:4px 10px;min-height:30px;font-size:11px">Ver blocos (<span id="blocksBadgeCount">1</span>) ▾</button></div></div><div id="blocksPreviewPanel" class="hidden" style="margin-top:12px;border-top:1px solid #ffffff12;padding-top:10px"><div class="hint" style="margin-bottom:8px">Os blocos abaixo serão narrados sequencialmente com a voz selecionada e concatenados no player final:</div><div id="blocksPreviewList" style="display:grid;gap:8px;max-height:220px;overflow-y:auto"></div></div></div><div class="card"><div class="row" style="margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Voz</h3><span class="pill" id="voiceCountBadge">30 vozes</span><span class="pill ok" id="selectedVoiceBadge" style="font-weight:600">Kore (Firme)</span></div><div style="display:flex;gap:6px"><button type="button" class="btn primary small" id="studioHeaderCloneBtn" style="font-size:11.5px;padding:3px 9px;min-height:30px">🧬 Clonar voz</button><button class="btn ghost small" data-go="voices">Meus perfis</button></div></div><div id="clonedVoiceActiveBanner" class="notice info hidden" style="background:#140e2b;border-color:#8b5cf688;margin-bottom:12px;padding:10px 12px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="font-size:22px;flex-shrink:0">🧬</span><div style="min-width:0"><div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>Voz clonada ativa para narração:</span><span id="activeClonedName" class="pill ok" style="font-size:11px;padding:1px 7px;background:#8b5cf633;border-color:#8b5cf6">Minha Voz</span></div><div class="hint" style="margin-top:2px;font-size:11px;color:#c4b5fd">Seus textos serão narrados com esta voz clonada (âncora acústica: <span id="activeClonedBase">Kore</span>).</div></div></div><div style="display:flex;gap:6px;flex-shrink:0"><button type="button" class="btn danger small" id="deleteActiveClonedVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Excluir este perfil de voz clonada">🗑️ Excluir voz</button><button type="button" class="btn ghost small" id="switchCatalogVoiceBtn" style="font-size:11px;padding:3px 8px;min-height:28px;white-space:nowrap" title="Restaurar voz de catálogo">Restaurar catálogo</button></div></div><div class="search-box" style="margin-bottom:12px"><span class="search-icon">🔍</span><input id="voiceSearchInput" type="text" placeholder="Buscar por voz ou estilo (ex: Firme, Brilhante, Zephyr)..." autocomplete="off"><button id="clearVoiceSearch" class="search-clear hidden" title="Limpar busca">✕</button></div><div class="hint" style="font-size:11.5px;color:#94a3b8;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span>🎧</span><span>Toque no botão <b>▶️ Ouvir</b> de qualquer voz para escutar uma demonstração antes de escolhê-la.</span></div><div style="margin-bottom:12px"><div class="row" style="margin-bottom:6px"><div class="hint" style="font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#cdd6eb;margin:0">Filtrar por estilo:</div><div style="display:flex;gap:4px"><button type="button" class="chip-nav-btn" id="voiceFilterScrollLeft" title="Rolar estilos para a esquerda" aria-label="Rolar estilos para a esquerda">‹</button><button type="button" class="chip-nav-btn" id="voiceFilterScrollRight" title="Rolar estilos para a direita" aria-label="Rolar estilos para a direita">›</button></div></div><div class="chip-bar-wrap"><div id="voiceFilterChips" class="chip-bar"></div></div></div><div id="voiceSelectList" class="voice-list"></div></div><div class="field"><label for="directionInput">Direção de performance (opcional)</label><input id="directionInput" placeholder="Ex.: fale com energia, em português brasileiro, ritmo calmo" value="Fale naturalmente, com dicção clara."></div><div class="card speed-card" style="background:#0c1427;border-color:var(--line);padding:14px;border-radius:14px"><div class="row" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:8px"><label for="speedSlider" style="font-size:13px;font-weight:700;margin:0;color:#cdd6eb">⚡ Velocidade de Reprodução e Fala</label><span class="pill ok" id="speedValueBadge" style="font-weight:700;min-width:44px;text-align:center">1.0x</span></div><button type="button" class="btn ghost small" id="resetSpeedBtn" style="padding:2px 8px;min-height:28px;font-size:11px" title="Redefinir para velocidade padrão (1.0x)">1.0x Padrão</button></div><div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">0.5x</span><input id="speedSlider" type="range" min="0.5" max="2.0" step="0.05" value="1.0" style="flex:1;accent-color:var(--primary);cursor:pointer;height:6px"><span class="hint" style="font-size:11px;font-weight:700;color:var(--muted)">2.0x</span></div><div class="chip-bar-wrap"><div class="chip-bar" id="speedPresetsChips" style="padding:0"><button type="button" class="chip" data-speed="0.75" style="padding:4px 10px;min-height:30px;font-size:11px">0.75x (Lento)</button><button type="button" class="chip active" data-speed="1.0" style="padding:4px 10px;min-height:30px;font-size:11px">1.0x (Normal)</button><button type="button" class="chip" data-speed="1.25" style="padding:4px 10px;min-height:30px;font-size:11px">1.25x (Dinâmico)</button><button type="button" class="chip" data-speed="1.5" style="padding:4px 10px;min-height:30px;font-size:11px">1.5x (Rápido)</button></div></div></div><div class="actions studio-actions"><button class="btn primary" id="generateBtn">✨ Gerar áudio</button><button class="btn secondary" id="clearStudio">Limpar</button></div><div id="generationStatus" class="hidden"></div><div id="playerBox" class="player hidden"><div class="player-top" style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div id="playerCoverThumb" class="gen-thumb" style="width:64px;height:64px;border-radius:14px" title="Personalizar capa com IA"><img id="playerCoverImg" src="" alt="Capa da narração" referrerpolicy="no-referrer"><span class="gen-thumb-badge">🎨 Capa</span></div><div class="player-meta" style="min-width:0;flex:1"><div class="player-title-row row" style="margin-bottom:4px"><b id="playerProjectTitle" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Narração gerada</b><button type="button" class="btn ghost small" id="openCoverModalBtn" title="Personalizar capa">🎨 Capa com IA</button></div><div class="hint" id="audioMeta"></div></div></div><audio id="audioPlayer" controls></audio><div id="playerBlocksList" class="hidden" style="margin-top:10px;background:#080d1b;border:1px solid var(--line);border-radius:12px;padding:10px;max-height:160px;overflow-y:auto;font-size:12px"></div><div class="actions player-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary small" id="downloadMp3Btn" title="Baixar áudio compactado em MP3 para menor tamanho e compartilhamento fácil">⬇️ Baixar MP3 <span class="pill ok" style="font-size:9.5px;padding:1px 5px;background:#34d39922;border-color:#34d399;color:#6ee7b7">Compacto</span></button><button type="button" class="btn secondary small" id="downloadBtn" title="Baixar áudio WAV original sem compressão">⬇️ Baixar WAV</button><button type="button" class="btn ghost small" id="viewPlayerBlocksBtn">📑 Ver blocos concatenados</button><button type="button" class="btn ghost small" id="downloadCoverBtn">🖼️ Baixar Capa</button></div></div><div class="section" id="studioGenerationsSection"><div class="row" style="margin-bottom:12px"><div><h3 style="margin:0">Projetos de Narração</h3><span class="hint">Narrações com capa personalizada</span></div><span class="pill" id="genCountBadge">0 projetos</span></div><div id="generationsList" class="list"></div></div><div class="notice warn">Este app não deve ser usado para imitar pessoas reais sem consentimento, fraude, chamadas enganosas ou autenticação por voz.</div></div></section>
 <section class="screen hidden" data-screen="voices"><div class="screen-head-row"><button type="button" class="back-btn-inline" data-back title="Voltar para a página anterior"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Voltar</span></button><h2 style="margin:0">Meus perfis de voz</h2></div><p class="sub">Grave ou importe uma amostra somente com autorização. O perfil é guardado localmente para organizar seus trabalhos.</p><div class="actions" style="margin-bottom:16px"><button class="btn primary" id="newProfileBtn">＋ Adicionar perfil</button><button class="btn secondary" data-go="studio">Usar no estúdio</button></div><div id="profilesList" class="list"></div><div class="section notice info"><b>Importante:</b> o modelo Gemini TTS Preview disponibiliza vozes de catálogo. Um perfil gravado aqui é uma referência local e não altera a identidade das vozes de catálogo.</div></section>
 <section class="screen hidden" data-screen="keys">
   <div class="screen-head-row">
@@ -690,16 +772,19 @@ h3{font-size:16px;margin:0 0 10px}
 </section>
 </main>
 <nav class="bottom"><div class="bottom-inner"><button class="nav active" data-go="home"><svg viewBox="0 0 24 24"><path d="M12 3 3 10v10a1 1 0 0 0 1 1h5v-6h6v6h5a1 1 0 0 0 1-1V10z"/></svg>Início</button><button class="nav" data-go="studio"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3m7 9h-2a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21H8v2h8v-2h-3v-2.08A7 7 0 0 0 19 12"/></svg>Estúdio</button><button class="nav" data-go="voices"><svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 0 0-4 4v4a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4m8 8h-2a6 6 0 0 1-12 0H4a8 8 0 0 0 7 7.93V21H8v2h8v-2h-3v-2.07A8 8 0 0 0 20 11"/></svg>Vozes</button><button class="nav" data-go="keys"><svg viewBox="0 0 24 24"><path d="M14 3a7 7 0 0 0-5.65 11.13L3 19.5V22h2.5l1.5-1.5V19h2v-2h2.17A7 7 0 1 0 14 3m0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6"/></svg>API</button><button class="nav" data-go="admin"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.25 3.4 10.17 8 11 4.6-.83 8-5.75 8-11V5zm0 5a3 3 0 0 1 3 3v1h1v5H8v-5h1v-1a3 3 0 0 1 3-3m0 2a1 1 0 0 0-1 1v1h2v-1a1 1 0 0 0-1-1"/></svg>Admin</button></div></nav>
-<div id="toast" class="toast"></div><div id="profileModal" class="modal hidden"><div class="modal-box stack"><div class="row"><h3 id="profileModalTitle" style="margin:0">🧬 Clonagem de Voz Ultra-Realista</h3><button class="icon-btn" id="closeProfile">×</button></div><p class="hint" id="profileModalDesc">Grave sua própria voz no microfone ou envie um áudio de alta fidelidade para clonar sua voz e gerar narrações personalizadas.</p><div class="card" style="background:#090f20;border:1px solid #8b5cf633;border-radius:14px;padding:12px;font-size:12px"><div style="font-weight:700;color:#cdd6eb;margin-bottom:4px">💡 Guia para Clonagem Ultra-Realista:</div><ul style="margin:0;padding-left:18px;color:#a6b4d4;line-height:1.55;font-size:11.5px"><li>Grave em ambiente silencioso, sem eco ou ruídos de fundo.</li><li>Mantenha o microfone a cerca de 15 a 20 cm da boca.</li><li>Fale com clareza, ritmo constante e natural durante 10 a 30 segundos.</li></ul></div><div class="field"><label for="profileName">Nome do perfil de voz</label><input id="profileName" placeholder="Minha Voz (Clone Ultra-Realista)"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="recordBtn" style="flex:1">● Gravar Minha Voz</button><label class="btn secondary" for="audioFile" id="audioFileLabel" style="flex:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">↥ Subir Áudio</label><input id="audioFile" class="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"></div><div id="recordState" class="hint" style="min-height:22px;line-height:1.4">Nenhuma amostra selecionada.</div><audio id="samplePlayer" class="hidden" controls style="width:100%;border-radius:8px"></audio><div class="field"><label for="profileBaseVoice" style="font-size:12px;color:#cdd6eb">Voz base do catálogo para síntese no estúdio</label><select id="profileBaseVoice" style="font-size:13px;padding:9px 12px;background:#0b1223;color:var(--text);border:1px solid var(--line);border-radius:10px"><option value="Kore">Kore (Firme - Padrão recomendada)</option><option value="Zephyr">Zephyr (Brilhante)</option><option value="Puck">Puck (Animada)</option><option value="Charon">Charon (Informativa)</option><option value="Fenrir">Fenrir (Excitável)</option><option value="Leda">Leda (Jovem)</option><option value="Orus">Orus (Firme Masculina)</option><option value="Aoede">Aoede (Leve)</option><option value="Callirrhoe">Callirrhoe (Tranquila)</option><option value="Algieba">Algieba (Suave)</option></select><span class="hint" style="font-size:11px">Define a âncora acústica no Gemini TTS para reproduzir sua narração com o timbre clonado.</span></div><label class="hint" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="profileConsent" type="checkbox" checked style="margin-top:3px;accent-color:var(--primary)"><span>Confirmo que tenho autorização e que esta é minha própria voz para clonagem.</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="saveToVoiceListCheckbox" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Salvar minha voz clonada na lista de vozes salvas</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="useImmediatelyInStudio" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Escolher minha voz clonada para narrar textos</span></label><button type="button" class="btn primary" id="saveProfileBtn" style="width:100%;min-height:44px">💾 Salvar Perfil de Voz</button></div></div><div id="coverModal" class="modal hidden"><div class="modal-box stack" style="max-width:480px"><div class="row"><h3 style="margin:0">Capa do Projeto de Narração</h3><button type="button" class="icon-btn" id="closeCoverModal">×</button></div><div class="cover-preview-card"><div class="cover-art-container" id="coverArtBox"><img id="coverPreviewImg" src="" alt="Capa gerada" referrerpolicy="no-referrer"></div><div class="hint" id="coverProjectLabel" style="margin-top:9px;font-weight:600;color:#cdd6eb;text-align:center">Narração</div></div><div class="field"><label>Estilo Visual da Capa</label><div class="chip-bar-wrap"><div id="coverThemeChips" class="chip-bar"></div></div></div><div class="field"><label for="coverPromptInput">Prompt visual / Direção artística</label><input id="coverPromptInput" placeholder="Ex.: ondas de áudio néon violeta, estética cósmica, estilo minimalista..."></div><div id="coverGenStatus" class="hint" style="min-height:16px;color:#cdd6eb"></div><div class="actions"><button type="button" class="btn primary" id="doGenerateCoverBtn">✨ Gerar com IA</button><button type="button" class="btn secondary" id="applyCoverBtn">💾 Salvar no Projeto</button><button type="button" class="btn ghost" id="downloadModalCoverBtn">⬇️ Baixar PNG</button></div></div></div><div id="installModal" class="modal hidden"><div class="modal-box stack" style="max-width:420px"><div class="row"><h3 style="margin:0">📲 Instalar VozForge no Celular</h3><button type="button" class="icon-btn" id="closeInstallModal">×</button></div><div style="text-align:center;padding:10px 0"><img src="/icon-192.png" width="76" height="76" alt="VozForge" style="border-radius:18px;box-shadow:0 8px 24px #6d28d944;margin-bottom:10px"><div style="font-size:17px;font-weight:700">VozForge Studio</div><div class="hint" style="margin-top:4px">Instale o app direto no seu Android para usar em tela cheia com alta velocidade e suporte offline.</div></div><div class="notice info" style="font-size:12px;text-align:left;line-height:1.6"><b>No Google Chrome (Android):</b><br>1. Toque nos <b>3 pontinhos (⋮)</b> no canto superior do navegador.<br>2. Toque em <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b>.<br>3. Pronto! O app fica disponível no menu e na tela inicial do seu celular.</div><div class="actions"><button type="button" class="btn primary" id="confirmInstallPromptBtn">Instalar agora</button><button type="button" class="btn ghost" id="dismissInstallModalBtn">Fechar</button></div></div></div><div id="driveConfirmModal" class="modal hidden"><div class="modal-box stack" style="max-width:440px"><div class="row"><h3 style="margin:0" id="driveConfirmTitle">Confirmar Ação</h3><button type="button" class="icon-btn" id="closeDriveConfirmModal">×</button></div><div id="driveConfirmMessage" style="font-size:13px;color:#cdd6eb;line-height:1.5;margin:8px 0 12px"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="driveConfirmOkBtn" style="flex:1">Continuar</button><button type="button" class="btn ghost" id="driveConfirmCancelBtn" style="flex:1">Cancelar</button></div></div></div>
+<div id="toast" class="toast"></div><div id="profileModal" class="modal hidden"><div class="modal-box stack"><div class="row"><h3 id="profileModalTitle" style="margin:0">🧬 Clonagem de Voz Ultra-Realista</h3><button class="icon-btn" id="closeProfile">×</button></div><p class="hint" id="profileModalDesc">Grave sua própria voz no microfone ou envie um áudio de alta fidelidade para clonar sua voz e gerar narrações personalizadas.</p><div class="card" style="background:#090f20;border:1px solid #8b5cf633;border-radius:14px;padding:12px;font-size:12px"><div style="font-weight:700;color:#cdd6eb;margin-bottom:4px">💡 Guia para Clonagem Ultra-Realista:</div><ul style="margin:0;padding-left:18px;color:#a6b4d4;line-height:1.55;font-size:11.5px"><li>Grave em ambiente silencioso, sem eco ou ruídos de fundo.</li><li>Mantenha o microfone a cerca de 15 a 20 cm da boca.</li><li>Fale com clareza, ritmo constante e natural durante 10 a 30 segundos.</li></ul></div><div class="field"><label for="profileName">Nome do perfil de voz</label><input id="profileName" placeholder="Minha Voz (Clone Ultra-Realista)"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="recordBtn" style="flex:1">● Gravar Minha Voz</button><label class="btn secondary" for="audioFile" id="audioFileLabel" style="flex:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">↥ Subir Áudio</label><input id="audioFile" class="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"></div><div id="recordState" class="hint" style="min-height:22px;line-height:1.4">Nenhuma amostra selecionada.</div><audio id="samplePlayer" class="hidden" controls style="width:100%;border-radius:8px"></audio><div class="field"><label for="profileBaseVoice" style="font-size:12px;color:#cdd6eb">Voz base do catálogo para síntese no estúdio</label><div style="display:flex;gap:8px;align-items:center"><select id="profileBaseVoice" style="flex:1;min-width:0;font-size:13px;padding:9px 12px;background:#0b1223;color:var(--text);border:1px solid var(--line);border-radius:10px"><option value="Kore">Kore (Firme - Padrão recomendada)</option><option value="Zephyr">Zephyr (Brilhante)</option><option value="Puck">Puck (Animada)</option><option value="Charon">Charon (Informativa)</option><option value="Fenrir">Fenrir (Excitável)</option><option value="Leda">Leda (Jovem)</option><option value="Orus">Orus (Firme Masculina)</option><option value="Aoede">Aoede (Leve)</option><option value="Callirrhoe">Callirrhoe (Tranquila)</option><option value="Algieba">Algieba (Suave)</option></select><button type="button" class="btn secondary small" id="previewBaseVoiceModalBtn" style="flex-shrink:0;min-height:38px;padding:0 10px;font-size:11.5px;white-space:nowrap" title="Ouvir voz base antes de escolher">▶️ Ouvir base</button></div><span class="hint" style="font-size:11px">Define a âncora acústica no Gemini TTS para reproduzir sua narração com o timbre clonado.</span></div><label class="hint" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer"><input id="profileConsent" type="checkbox" checked style="margin-top:3px;accent-color:var(--primary)"><span>Confirmo que tenho autorização e que esta é minha própria voz para clonagem.</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="saveToVoiceListCheckbox" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Salvar minha voz clonada na lista de vozes salvas</span></label><label class="hint" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0"><input id="useImmediatelyInStudio" type="checkbox" checked style="accent-color:var(--primary);width:16px;height:16px"><span style="color:#cdd6eb;font-weight:600">Escolher minha voz clonada para narrar textos</span></label><button type="button" class="btn primary" id="saveProfileBtn" style="width:100%;min-height:44px">💾 Salvar Perfil de Voz</button></div></div><div id="coverModal" class="modal hidden"><div class="modal-box stack" style="max-width:480px"><div class="row"><h3 style="margin:0">Capa do Projeto de Narração</h3><button type="button" class="icon-btn" id="closeCoverModal">×</button></div><div class="cover-preview-card"><div class="cover-art-container" id="coverArtBox"><img id="coverPreviewImg" src="" alt="Capa gerada" referrerpolicy="no-referrer"></div><div class="hint" id="coverProjectLabel" style="margin-top:9px;font-weight:600;color:#cdd6eb;text-align:center">Narração</div></div><div class="field"><label>Estilo Visual da Capa</label><div class="chip-bar-wrap"><div id="coverThemeChips" class="chip-bar"></div></div></div><div class="field"><label for="coverPromptInput">Prompt visual / Direção artística</label><input id="coverPromptInput" placeholder="Ex.: ondas de áudio néon violeta, estética cósmica, estilo minimalista..."></div><div id="coverGenStatus" class="hint" style="min-height:16px;color:#cdd6eb"></div><div class="actions"><button type="button" class="btn primary" id="doGenerateCoverBtn">✨ Gerar com IA</button><button type="button" class="btn secondary" id="applyCoverBtn">💾 Salvar no Projeto</button><button type="button" class="btn ghost" id="downloadModalCoverBtn">⬇️ Baixar PNG</button></div></div></div><div id="installModal" class="modal hidden"><div class="modal-box stack" style="max-width:420px"><div class="row"><h3 style="margin:0">📲 Instalar VozForge no Celular</h3><button type="button" class="icon-btn" id="closeInstallModal">×</button></div><div style="text-align:center;padding:10px 0"><img src="/icon-192.png" width="76" height="76" alt="VozForge" style="border-radius:18px;box-shadow:0 8px 24px #6d28d944;margin-bottom:10px"><div style="font-size:17px;font-weight:700">VozForge Studio</div><div class="hint" style="margin-top:4px">Instale o app direto no seu Android para usar em tela cheia com alta velocidade e suporte offline.</div></div><div class="notice info" style="font-size:12px;text-align:left;line-height:1.6"><b>No Google Chrome (Android):</b><br>1. Toque nos <b>3 pontinhos (⋮)</b> no canto superior do navegador.<br>2. Toque em <b>"Instalar aplicativo"</b> ou <b>"Adicionar à tela inicial"</b>.<br>3. Pronto! O app fica disponível no menu e na tela inicial do seu celular.</div><div class="actions"><button type="button" class="btn primary" id="confirmInstallPromptBtn">Instalar agora</button><button type="button" class="btn ghost" id="dismissInstallModalBtn">Fechar</button></div></div></div><div id="driveConfirmModal" class="modal hidden"><div class="modal-box stack" style="max-width:440px"><div class="row"><h3 style="margin:0" id="driveConfirmTitle">Confirmar Ação</h3><button type="button" class="icon-btn" id="closeDriveConfirmModal">×</button></div><div id="driveConfirmMessage" style="font-size:13px;color:#cdd6eb;line-height:1.5;margin:8px 0 12px"></div><div class="actions" style="display:flex;gap:8px"><button type="button" class="btn primary" id="driveConfirmOkBtn" style="flex:1">Continuar</button><button type="button" class="btn ghost" id="driveConfirmCancelBtn" style="flex:1">Cancelar</button></div></div></div>
 <script>
 const VOICES=[['Zephyr','Brilhante'],['Puck','Animada'],['Charon','Informativa'],['Kore','Firme'],['Fenrir','Excitável'],['Leda','Jovem'],['Orus','Firme'],['Aoede','Leve'],['Callirrhoe','Tranquila'],['Autonoe','Brilhante'],['Enceladus','Soprosa'],['Iapetus','Clara'],['Umbriel','Tranquila'],['Algieba','Suave'],['Despina','Suave'],['Erinome','Clara'],['Algenib','Rouca'],['Rasalgethi','Informativa'],['Laomedeia','Animada'],['Achernar','Macia'],['Alnilam','Firme'],['Schedar','Equilibrada'],['Gacrux','Madura'],['Pulcherrima','Direta'],['Achird','Amigável'],['Zubenelgenubi','Casual'],['Vindemiatrix','Gentil'],['Sadachbia','Viva'],['Sadaltager','Conhecedora'],['Sulafat','Acolhedora']];
 const defaults={profiles:[],keys:[],generations:[],events:[],settings:{model:'gemini-3.1-flash-tts-preview',limit:4000,consent:true,pin:'2468',authMode:'vault',driveAutoSync:false,driveLastSync:null,driveLastSyncCount:0,driveFileId:null},selectedVoice:'Kore'};
 let db=loadDb();
 if(!db.clientId){db.clientId='cli_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);saveDb();}
 if(!db.settings.authMode){db.settings.authMode='vault';saveDb();}
-let currentScreen='home', currentAudioUrl=null, currentFinalPcm=null, currentWavBlob=null, currentMp3Blob=null, activePreviewAudio=null, activePreviewId=null, sampleBlob=null, recorder=null, chunks=[], serverConfig={hasServerKey:false}, voiceFilterStyle='ALL', voiceSearchQuery='', activeCoverTheme='cyberpunk', activeCoverGenId=null, activeCoverDataUrl=null, currentProjectMeta={title:'Narração',text:'',voice:'Kore',voiceStyle:'Firme'};
+let currentScreen='home', currentAudioUrl=null, currentFinalPcm=null, currentWavBlob=null, currentMp3Blob=null, activePreviewAudio=null, activePreviewId=null, loadingPreviewVoice=null, catalogPreviewCache={}, sampleBlob=null, recorder=null, chunks=[], serverConfig={hasServerKey:false}, voiceFilterStyle='ALL', voiceSearchQuery='', activeCoverTheme='cyberpunk', activeCoverGenId=null, activeCoverDataUrl=null, currentProjectMeta={title:'Narração',text:'',voice:'Kore',voiceStyle:'Firme'};
 
 function stopActivePreview(){
+  if(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+  }
   if(activePreviewAudio){
     try{
       activePreviewAudio.pause();
@@ -708,6 +793,7 @@ function stopActivePreview(){
     activePreviewAudio=null;
   }
   activePreviewId=null;
+  loadingPreviewVoice=null;
   updatePreviewButtonsUI();
 }
 
@@ -731,6 +817,191 @@ function updatePreviewButtonsUI(){
     btn.title=label;
     btn.setAttribute('aria-label',label);
   });
+  document.querySelectorAll('[data-play-catalog]').forEach(btn=>{
+    const vName=btn.dataset.playCatalog;
+    const cid='catalog:'+vName;
+    const isSpeaking=window.speechSynthesis&&window.speechSynthesis.speaking&&activePreviewId===cid;
+    const isPlaying=(activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===cid)||isSpeaking;
+    const isLoading=loadingPreviewVoice===vName;
+    btn.classList.toggle('loading',isLoading);
+    btn.classList.toggle('playing',isPlaying);
+    if(isLoading){
+      btn.textContent='⏳';
+      btn.title=`Gerando demonstração da voz ${vName}...`;
+      btn.setAttribute('aria-label',`Gerando demonstração da voz ${vName}`);
+    }else if(isPlaying){
+      btn.textContent='⏸️';
+      btn.title=`Pausar áudio da voz ${vName}`;
+      btn.setAttribute('aria-label',`Pausar áudio da voz ${vName}`);
+    }else{
+      btn.textContent='▶️';
+      btn.title=`Ouvir voz ${vName} antes de escolher`;
+      btn.setAttribute('aria-label',`Ouvir voz ${vName} antes de escolher`);
+    }
+  });
+  const baseBtn=$('previewBaseVoiceModalBtn');
+  if(baseBtn){
+    const selVal=$('profileBaseVoice')?$('profileBaseVoice').value:'Kore';
+    const cid='catalog:'+selVal;
+    const isSpeaking=window.speechSynthesis&&window.speechSynthesis.speaking&&activePreviewId===cid;
+    const isPlaying=(activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===cid)||isSpeaking;
+    const isLoading=loadingPreviewVoice===selVal;
+    if(isLoading){
+      baseBtn.innerHTML='⏳ Carregando...';
+    }else if(isPlaying){
+      baseBtn.innerHTML='⏸️ Pausar base';
+    }else{
+      baseBtn.innerHTML='▶️ Ouvir base';
+    }
+  }
+}
+
+function playAudioSource(id,audioSrc,voiceName,voiceStyle=''){
+  stopActivePreview();
+  try{
+    const audio=new Audio(audioSrc);
+    activePreviewAudio=audio;
+    activePreviewId=id;
+    updatePreviewButtonsUI();
+    audio.onended=()=>{
+      if(activePreviewAudio===audio){
+        activePreviewAudio=null;
+        activePreviewId=null;
+        updatePreviewButtonsUI();
+      }
+    };
+    audio.onerror=()=>{
+      if(activePreviewAudio===audio){
+        activePreviewAudio=null;
+        activePreviewId=null;
+        updatePreviewButtonsUI();
+      }
+      fallbackSpeechSynthesis(voiceName,voiceStyle,id);
+    };
+    audio.play().then(()=>{
+      updatePreviewButtonsUI();
+      toast(`Ouvindo voz: ${voiceName}${voiceStyle?' ('+voiceStyle+')':''}`);
+    }).catch(err=>{
+      activePreviewAudio=null;
+      activePreviewId=null;
+      updatePreviewButtonsUI();
+      fallbackSpeechSynthesis(voiceName,voiceStyle,id);
+    });
+  }catch(e){
+    fallbackSpeechSynthesis(voiceName,voiceStyle,id);
+  }
+}
+
+function fallbackSpeechSynthesis(voiceName,voiceStyle='',previewId=''){
+  if(!('speechSynthesis' in window)){
+    toast(`Demonstração da voz ${voiceName}: adicione sua chave Gemini nas configurações para sintetizar via IA.`);
+    return;
+  }
+  try{
+    window.speechSynthesis.cancel();
+    const phrase=`Olá! Esta é uma demonstração da voz ${voiceName}, com estilo ${voiceStyle||'natural'}.`;
+    const utter=new SpeechSynthesisUtterance(phrase);
+    utter.lang='pt-BR';
+    utter.rate=1.0;
+    activePreviewId=previewId;
+    updatePreviewButtonsUI();
+    utter.onend=()=>{
+      if(activePreviewId===previewId){
+        activePreviewId=null;
+        updatePreviewButtonsUI();
+      }
+    };
+    utter.onerror=()=>{
+      if(activePreviewId===previewId){
+        activePreviewId=null;
+        updatePreviewButtonsUI();
+      }
+    };
+    window.speechSynthesis.speak(utter);
+    toast(`Ouvindo demonstração de ${voiceName}`);
+  }catch(err){
+    stopActivePreview();
+    toast(`Erro ao reproduzir demonstração da voz ${voiceName}.`);
+  }
+}
+
+async function toggleCatalogVoicePreview(voiceName,voiceStyle='',event=null){
+  if(event){
+    event.stopPropagation();
+  }
+  haptic(10);
+  const previewId='catalog:'+voiceName;
+  if(activePreviewId===previewId){
+    if(activePreviewAudio&&!activePreviewAudio.paused){
+      activePreviewAudio.pause();
+      updatePreviewButtonsUI();
+      toast(`Áudio de ${voiceName} pausado.`);
+      return;
+    }else if(activePreviewAudio&&activePreviewAudio.paused){
+      activePreviewAudio.play().then(()=>{
+        updatePreviewButtonsUI();
+        toast(`Reproduzindo voz: ${voiceName}`);
+      }).catch(()=>{
+        toast('Erro ao retomar reprodução.');
+      });
+      return;
+    }else if(window.speechSynthesis&&window.speechSynthesis.speaking){
+      window.speechSynthesis.cancel();
+      activePreviewId=null;
+      updatePreviewButtonsUI();
+      toast(`Demonstração de ${voiceName} pausada.`);
+      return;
+    }
+  }
+
+  stopActivePreview();
+
+  if(catalogPreviewCache[voiceName]){
+    playAudioSource(previewId,catalogPreviewCache[voiceName],voiceName,voiceStyle);
+    return;
+  }
+
+  loadingPreviewVoice=voiceName;
+  updatePreviewButtonsUI();
+  toast(`Carregando demonstração da voz ${voiceName}...`);
+
+  const samplePrompt=`Olá! Esta é a voz ${voiceName}, com estilo ${voiceStyle||'natural'}, para suas narrações no VozForge.`;
+  const availableKeys=(db.keys&&db.keys.length>0)?db.keys:[];
+  let activeKeyIndex=availableKeys.findIndex(k=>k.active);
+  if(activeKeyIndex<0)activeKeyIndex=0;
+  const currentKey=availableKeys[activeKeyIndex]?availableKeys[activeKeyIndex].value:'';
+
+  try{
+    const body={
+      prompt:samplePrompt,
+      voice:voiceName,
+      model:db.settings.model||'gemini-3.1-flash-tts-preview',
+      direction:`Fale naturalmente com tom ${voiceStyle||'claro'} em português brasileiro.`
+    };
+    const res=await callGemini(body,currentKey);
+    if(loadingPreviewVoice!==voiceName)return;
+
+    let b64=null;
+    if(res&&res.data){
+      if(res.data.audio_base64)b64=res.data.audio_base64;
+      else if(res.data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data)b64=res.data.candidates[0].content.parts[0].inlineData.data;
+    }
+
+    if(b64){
+      const wavBlob=toWav(b64);
+      const audioUrl=URL.createObjectURL(wavBlob);
+      catalogPreviewCache[voiceName]=audioUrl;
+      loadingPreviewVoice=null;
+      playAudioSource(previewId,audioUrl,voiceName,voiceStyle);
+    }else{
+      loadingPreviewVoice=null;
+      fallbackSpeechSynthesis(voiceName,voiceStyle,previewId);
+    }
+  }catch(err){
+    if(loadingPreviewVoice!==voiceName)return;
+    loadingPreviewVoice=null;
+    fallbackSpeechSynthesis(voiceName,voiceStyle,previewId);
+  }
 }
 
 function toggleVoicePreview(id,audioData,voiceName='Voz'){
@@ -1233,12 +1504,16 @@ function renderVoices(){
   }
   matchingCatalog.forEach(v=>{
     const isSelected=!vInfo.isClone&&vInfo.name===v[0];
-    html+=`<div class="voice ${isSelected?'selected':''}" role="button" tabindex="0" data-voice="${v[0]}"><span><b>${v[0]}</b><span>${v[1]}</span></span><i class="dot"></i></div>`;
+    const cid='catalog:'+v[0];
+    const isSpeaking=window.speechSynthesis&&window.speechSynthesis.speaking&&activePreviewId===cid;
+    const isPlaying=(activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===cid)||isSpeaking;
+    const isLoading=loadingPreviewVoice===v[0];
+    html+=`<div class="voice ${isSelected?'selected':''}" role="button" tabindex="0" data-voice="${v[0]}" title="Escolher voz ${v[0]} (${v[1]}) para narrar"><div style="min-width:0;flex:1"><b style="font-size:13.5px;color:#fff">${v[0]}</b><span style="display:block;font-size:11.5px;color:var(--muted)">${v[1]}</span></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><button type="button" class="voice-action-btn ${isPlaying?'playing':''} ${isLoading?'loading':''}" data-play-catalog="${v[0]}" data-voice-style="${v[1]}" title="${isLoading?'Gerando demonstração...':(isPlaying?'Pausar áudio':'Ouvir voz '+v[0]+' antes de escolher')}" aria-label="Ouvir voz ${v[0]} antes de escolher">${isLoading?'⏳':(isPlaying?'⏸️':'▶️')}</button><i class="dot"></i></div></div>`;
   });
   box.innerHTML=html;
   box.querySelectorAll('[data-voice]').forEach(x=>{
     const selectHandler=(e)=>{
-      if(e.target.closest('[data-play-clone]')||e.target.closest('[data-delete-clone]'))return;
+      if(e.target.closest('[data-play-clone]')||e.target.closest('[data-delete-clone]')||e.target.closest('[data-play-catalog]'))return;
       haptic(12);
       db.selectedVoice=x.dataset.voice;
       saveDb();
@@ -1253,6 +1528,14 @@ function renderVoices(){
     };
     x.onclick=selectHandler;
     x.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectHandler(e)}};
+  });
+  box.querySelectorAll('[data-play-catalog]').forEach(x=>{
+    x.onclick=(e)=>{
+      e.stopPropagation();
+      const vName=x.dataset.playCatalog;
+      const vStyle=x.dataset.voiceStyle||'';
+      toggleCatalogVoicePreview(vName,vStyle,e);
+    };
   });
   box.querySelectorAll('[data-play-clone]').forEach(x=>{
     x.onclick=(e)=>{
@@ -1470,7 +1753,23 @@ function renderAdmin(){
   if($('adminModel'))$('adminModel').value=db.settings.model;
   if($('adminLimit'))$('adminLimit').value=db.settings.limit;
   if($('adminRequireConsent'))$('adminRequireConsent').checked=db.settings.consent;
-  if($('voiceTable'))$('voiceTable').innerHTML=VOICES.map(v=>`<tr><td><b>${v[0]}</b></td><td>${v[1]}</td></tr>`).join('');
+  if($('voiceTable')){
+    $('voiceTable').innerHTML=VOICES.map(v=>{
+      const cid='catalog:'+v[0];
+      const isSpeaking=window.speechSynthesis&&window.speechSynthesis.speaking&&activePreviewId===cid;
+      const isPlaying=(activePreviewAudio&&!activePreviewAudio.paused&&activePreviewId===cid)||isSpeaking;
+      const isLoading=loadingPreviewVoice===v[0];
+      return `<tr><td><b>${v[0]}</b></td><td>${v[1]}</td><td style="text-align:right"><button type="button" class="voice-action-btn ${isPlaying?'playing':''} ${isLoading?'loading':''}" data-play-catalog="${v[0]}" data-voice-style="${v[1]}" title="${isLoading?'Gerando...':(isPlaying?'Pausar áudio':'Ouvir voz '+v[0])}" aria-label="Ouvir voz ${v[0]}">${isLoading?'⏳':(isPlaying?'⏸️':'▶️')}</button></td></tr>`;
+    }).join('');
+    $('voiceTable').querySelectorAll('[data-play-catalog]').forEach(x=>{
+      x.onclick=(e)=>{
+        e.stopPropagation();
+        const vName=x.dataset.playCatalog;
+        const vStyle=x.dataset.voiceStyle||'';
+        toggleCatalogVoicePreview(vName,vStyle,e);
+      };
+    });
+  }
   if($('adminProfilesBadge'))$('adminProfilesBadge').textContent=`${db.profiles.length} perfil${db.profiles.length===1?'':'es'}`;
   if(typeof updateDriveUI==='function')updateDriveUI();
   loadAdminVaultData();
@@ -2039,7 +2338,21 @@ if($('homeShortcutCloneBtn'))$('homeShortcutCloneBtn').onclick=()=>{haptic(10);o
 if($('studioHeaderCloneBtn'))$('studioHeaderCloneBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
 if($('homeAudioFileInput')){$('homeAudioFileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;sampleBlob=f;openVoiceCloneModal('upload');const cleanName=f.name.replace(/\.[^/.]+$/,'').trim();$('profileName').value=cleanName?`Minha Voz - ${cleanName}`:'Minha Voz (Clone Ultra-Realista)';$('recordState').innerHTML=`<span style="color:#9ff4cf;font-weight:600">✓ Áudio da voz carregado:</span> ${esc(f.name)} (${Math.round(f.size/1024)} KB)`;$('samplePlayer').src=URL.createObjectURL(f);$('samplePlayer').classList.remove('hidden');e.target.value='';toast('Áudio da voz pronto! Salve o perfil para clonar.')}};
 $('newProfileBtn').onclick=()=>{haptic(10);openVoiceCloneModal('record')};
-$('closeProfile').onclick=()=>{$('profileModal').classList.add('hidden')};
+$('closeProfile').onclick=()=>{stopActivePreview();$('profileModal').classList.add('hidden')};
+if($('previewBaseVoiceModalBtn')){
+  $('previewBaseVoiceModalBtn').onclick=(e)=>{
+    e.stopPropagation();
+    const baseVal=$('profileBaseVoice')?$('profileBaseVoice').value:'Kore';
+    const matchV=VOICES.find(v=>v[0]===baseVal);
+    const style=matchV?matchV[1]:'';
+    toggleCatalogVoicePreview(baseVal,style,e);
+  };
+}
+if($('profileBaseVoice')){
+  $('profileBaseVoice').onchange=()=>{
+    updatePreviewButtonsUI();
+  };
+}
 $('audioFile').onchange=e=>{const f=e.target.files[0];if(!f)return;sampleBlob=f;const cleanName=f.name.replace(/\.[^/.]+$/,'').trim();if(!$('profileName').value.trim()||$('profileName').value==='Minha voz'){$('profileName').value=cleanName?`Minha Voz - ${cleanName}`:'Minha Voz (Clone Ultra-Realista)'}$('recordState').innerHTML=`<span style="color:#9ff4cf;font-weight:600">✓ Áudio selecionado:</span> ${esc(f.name)} (${Math.round(f.size/1024)} KB)`;$('samplePlayer').src=URL.createObjectURL(f);$('samplePlayer').classList.remove('hidden');toast('Amostra de áudio carregada!')};
 function getAudioMimeType(){const types=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac','audio/ogg;codecs=opus'];for(const t of types){if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))return t}return''}
 $('recordBtn').onclick=async()=>{if(recorder&&recorder.state==='recording'){recorder.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];const mime=getAudioMimeType();recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks.push(e.data)};recorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());sampleBlob=new Blob(chunks,{type:recorder.mimeType||mime||'audio/webm'});$('recordState').innerHTML=`<span style="color:#9ff4cf;font-weight:600">✓ Gravação pronta:</span> ${Math.round(sampleBlob.size/1024)} KB`;$('samplePlayer').src=URL.createObjectURL(sampleBlob);$('samplePlayer').classList.remove('hidden');$('recordBtn').textContent='● Gravar novamente';toast('Gravação finalizada com sucesso!')};recorder.start(250);$('recordBtn').textContent='■ Concluir Gravação';$('recordState').innerHTML='<span class="recording"><i></i> Gravando sua voz… fale com clareza por 10 a 30 segundos</span>'}catch(e){toast('Permita o microfone no navegador para gravar sua voz.')}};
