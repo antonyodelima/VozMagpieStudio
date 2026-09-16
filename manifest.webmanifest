@@ -1,0 +1,57 @@
+{
+  "id": "/",
+  "name": "VozForge Studio",
+  "short_name": "VozForge",
+  "description": "Estúdio de voz com IA para narrações e síntese de voz usando Gemini TTS",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#080d1b",
+  "background_color": "#080d1b",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity", "multimedia"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo Áudio no Estúdio",
+      "short_name": "Estúdio",
+      "description": "Abrir o estúdio de narração",
+      "url": "/#studio",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Perfis de Voz",
+      "short_name": "Perfis",
+      "description": "Gerenciar perfis de voz locais",
+      "url": "/#voices",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -11,5 +11,8 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
   }
 }
