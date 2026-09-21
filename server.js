@@ -9,12 +9,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '15mb' }));
 
 // --- SECRETS VAULT & USER LIMITS PERSISTENCE ---
-const SERVER_DATA_DIR = path.join(__dirname, '.server-data');
+const SERVER_DATA_DIR = process.env.VOZFORGE_DATA_DIR || path.join(__dirname, '.server-data');
 if (!fs.existsSync(SERVER_DATA_DIR)) {
   try {
     fs.mkdirSync(SERVER_DATA_DIR, { recursive: true });
@@ -82,8 +82,9 @@ function getActiveVaultKey() {
   const vault = loadJsonSafe(VAULT_FILE, defaultVault);
   if (!vault.vaultEnabled) return null;
 
-  // 1. Chave customizada ativa no cofre do servidor
-  const activeCustom = (vault.customKeys || []).find(k => k.active && k.key);
+  // 1. Chave Gemini customizada ativa no cofre do servidor (ignora chaves Cartesia)
+  const isCsKey = k => Boolean(k.cartesia) || /cartesia/i.test(String(k.name || ''));
+  const activeCustom = (vault.customKeys || []).find(k => k.active && k.key && !isCsKey(k));
   if (activeCustom && activeCustom.key) {
     return {
       key: activeCustom.key,
@@ -103,13 +104,14 @@ function getActiveVaultKey() {
     };
   }
 
-  // 3. Qualquer chave salva no cofre caso nenhuma esteja explicitamente como ativa
-  if (vault.customKeys && vault.customKeys.length > 0 && vault.customKeys[0].key) {
+  // 3. Qualquer chave Gemini salva no cofre caso nenhuma esteja explicitamente ativa
+  const anyGemini = (vault.customKeys || []).find(k => k.key && !isCsKey(k));
+  if (anyGemini) {
     return {
-      key: vault.customKeys[0].key,
+      key: anyGemini.key,
       source: 'vault_custom',
-      name: vault.customKeys[0].name || 'Chave do Cofre',
-      id: vault.customKeys[0].id
+      name: anyGemini.name || 'Chave do Cofre',
+      id: anyGemini.id
     };
   }
 
@@ -274,11 +276,14 @@ app.get('/api/health', (req, res) => {
 // Environment & Vault config endpoint
 app.get('/api/config', (req, res) => {
   const vaultKey = getActiveVaultKey();
+  const cs = getCartesiaKey();
   res.json({
     hasServerKey: Boolean(process.env.GEMINI_API_KEY || vaultKey),
     vaultActive: Boolean(vaultKey),
     vaultSource: vaultKey ? vaultKey.source : null,
-    vaultKeyName: vaultKey ? vaultKey.name : null
+    vaultKeyName: vaultKey ? vaultKey.name : null,
+    hasCartesiaKey: Boolean(cs),
+    cartesiaSource: cs ? cs.source : null
   });
 });
 
@@ -336,20 +341,22 @@ app.post('/api/vault/keys', (req, res) => {
     }
     const cleanKey = String(key || '').trim();
     if (cleanKey.length < 10) {
-      return res.status(400).json({ error: 'Chave Gemini inválida.' });
+      return res.status(400).json({ error: 'Chave inválida.' });
     }
     const cleanName = String(name || '').trim() || 'Chave do Cofre';
+    const isCartesia = Boolean(req.body && req.body.cartesia);
 
     const vault = loadJsonSafe(VAULT_FILE, defaultVault);
     if (!Array.isArray(vault.customKeys)) vault.customKeys = [];
 
-    // Desativa chaves anteriores e insere nova chave ativa
-    vault.customKeys.forEach(k => { k.active = false; });
+    // Desativa chaves anteriores do MESMO provedor e insere a nova chave ativa
+    vault.customKeys.forEach(k => { if (Boolean(k.cartesia) === Boolean(req.body && req.body.cartesia)) k.active = false; });
     const newEntry = {
       id: 'vault_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       name: cleanName,
       key: cleanKey,
       active: true,
+      cartesia: isCartesia,
       createdAt: new Date().toISOString()
     };
     vault.customKeys.unshift(newEntry);
@@ -373,21 +380,23 @@ app.post('/api/vault/keys', (req, res) => {
 
 // Ativar ou remover chave do cofre (protegido por PIN administrativo)
 app.post('/api/vault/keys/toggle', (req, res) => {
+  const isCsKey = k => Boolean(k.cartesia) || /cartesia/i.test(String(k.name || ''));
   try {
     const { pin, keyId, active } = req.body || {};
     if (!verifyAdminPin(pin)) {
       return res.status(401).json({ error: 'PIN administrativo incorreto.' });
     }
     const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+    const isCartesiaProvider = Boolean(req.body && req.body.cartesia);
     if (keyId === 'env_master') {
-      vault.customKeys.forEach(k => { k.active = false; });
+      vault.customKeys.forEach(k => { if (!isCsKey(k)) k.active = false; });
       saveJsonSafe(VAULT_FILE, vault);
-      return res.json({ ok: true, message: 'Chave mestre de ambiente ativada como prioritária.' });
+      return res.json({ ok: true, message: 'Chave mestre de ambiente ativada como prioritária para chaves Gemini.' });
     }
     const target = (vault.customKeys || []).find(k => k.id === keyId);
     if (!target) return res.status(404).json({ error: 'Chave não encontrada no cofre.' });
     if (active) {
-      vault.customKeys.forEach(k => { k.active = false; });
+      vault.customKeys.forEach(k => { if (isCsKey(k) === isCartesiaProvider) k.active = false; });
       target.active = true;
     } else {
       target.active = false;
@@ -437,6 +446,7 @@ app.get('/api/vault/admin/stats', (req, res) => {
       name: k.name,
       masked: maskKey(k.key),
       active: k.active,
+      cartesia: Boolean(k.cartesia),
       createdAt: k.createdAt
     }));
 
@@ -533,6 +543,147 @@ app.post('/api/vault/admin/reset-user', (req, res) => {
     return res.json({ ok: true, message: `Cota do usuário ${userId} zerada com sucesso.` });
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// --- CARTESIA (Sonic TTS) ---
+const CARTESIA_VERSION = '2025-04-16';
+const CARTESIA_VOICES_URL = 'https://api.cartesia.ai/voices';
+const CARTESIA_TTS_URL = 'https://api.cartesia.ai/tts/bytes';
+const CARTESIA_CLONE_URL = 'https://api.cartesia.ai/voices/clone/';
+
+function getCartesiaKey() {
+  if (process.env.CARTESIA_API_KEY) {
+    return { key: process.env.CARTESIA_API_KEY, source: 'environment' };
+  }
+  const vault = loadJsonSafe(VAULT_FILE, defaultVault);
+  const isCsKey = k => Boolean(k.cartesia) || /cartesia/i.test(String(k.name || ''));
+  // Apenas chaves Cartesia explicitamente ativas no cofre (Desativar = indisponível).
+  const cs = (vault.customKeys || []).find(k => isCsKey(k) && k.active && k.key);
+  if (cs) return { key: cs.key, source: 'vault_custom' };
+  return null;
+}
+
+function cartesiaHeaders(key) {
+  return {
+    'X-API-Key': key,
+    'Cartesia-Version': CARTESIA_VERSION,
+    'Content-Type': 'application/json'
+  };
+}
+
+app.get('/api/cartesia/status', (req, res) => {
+  const cs = getCartesiaKey();
+  res.json({ ok: true, available: Boolean(cs), source: cs ? cs.source : null });
+});
+
+app.get('/api/cartesia/voices', async (req, res) => {
+  try {
+    const cs = getCartesiaKey();
+    if (!cs) return res.status(400).json({ error: { message: 'Nenhuma chave Cartesia configurada no servidor (CARTESIA_API_KEY).' } });
+    const r = await fetch(CARTESIA_VOICES_URL, { headers: cartesiaHeaders(cs.key) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const msg = (data && (data.detail || data.message)) || `Erro Cartesia HTTP ${r.status}`;
+      return res.status(r.status).json({ error: { message: msg } });
+    }
+    const voices = Array.isArray(data) ? data : (data.voices || []);
+    return res.json({ ok: true, voices });
+  } catch (err) {
+    return res.status(500).json({ error: { message: err.message || 'Erro ao listar vozes Cartesia.' } });
+  }
+});
+
+app.post('/api/cartesia/tts', async (req, res) => {
+  try {
+    const cs = getCartesiaKey();
+    if (!cs) {
+      return res.status(400).json({ error: { message: 'Nenhuma chave Cartesia configurada no servidor. Defina CARTESIA_API_KEY no ambiente ou adicione uma chave Cartesia no cofre.' } });
+    }
+    const body = req.body || {};
+    const transcript = String(body.transcript || body.text || '').trim();
+    if (!transcript) return res.status(400).json({ error: { message: 'Texto (transcript) é obrigatório.' } });
+    const voiceId = String(body.voice_id || '').trim();
+    if (!voiceId) return res.status(400).json({ error: { message: 'voice_id é obrigatório para síntese Cartesia.' } });
+
+    const user = resolveUser(req);
+    const check = checkUserLimits(user.userId, transcript.length);
+    if (!check.allowed) {
+      return res.status(check.code).json({ error: { code: check.code, limitType: check.limitType, message: check.message, retryAfterSeconds: check.retryAfterSeconds, limits: check.limits, userUsage: check.userUsage } });
+    }
+
+    const r = await fetch(CARTESIA_TTS_URL, {
+      method: 'POST',
+      headers: cartesiaHeaders(cs.key),
+      body: JSON.stringify({
+        model_id: 'sonic-3',
+        transcript,
+        voice: { mode: 'id', id: voiceId },
+        output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 24000 },
+        language: 'pt'
+      })
+    });
+    if (!r.ok) {
+      const errData = await r.json().catch(() => ({}));
+      const msg = (errData && (errData.detail || errData.message)) || `Erro Cartesia HTTP ${r.status}`;
+      return res.status(r.status === 429 ? 429 : 502).json({ error: { code: r.status, message: msg } });
+    }
+    const pcmBuf = Buffer.from(await r.arrayBuffer());
+    const updatedUsage = recordUserUsage(user.userId, { chars: transcript.length, isGeneration: true, email: user.email, name: user.name });
+    res.setHeader('x-user-generations-today', String(updatedUsage.generations));
+    res.setHeader('x-user-chars-today', String(updatedUsage.chars));
+    return res.json({
+      ok: true,
+      provider: 'cartesia',
+      model: 'sonic-3',
+      sample_rate: 24000,
+      audio_base64: pcmBuf.toString('base64'),
+      output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 24000 }
+    });
+  } catch (error) {
+    console.error('Error in /api/cartesia/tts:', error);
+    return res.status(500).json({ error: { message: error.message || 'Erro de comunicação com a API da Cartesia.' } });
+  }
+});
+
+app.post('/api/cartesia/clone', express.raw({ type: '*/*', limit: '30mb' }), async (req, res) => {
+  try {
+    const cs = getCartesiaKey();
+    if (!cs) {
+      return res.status(400).json({ error: { message: 'Nenhuma chave Cartesia configurada no servidor (CARTESIA_API_KEY).' } });
+    }
+    const sample = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    if (!sample.length) {
+      return res.status(400).json({ error: { message: 'Envie o áudio da amostra vocal no corpo da requisição.' } });
+    }
+    if (sample.length > 25 * 1024 * 1024) {
+      return res.status(413).json({ error: { message: 'Amostra de áudio muito grande (máx. 25MB).' } });
+    }
+    const voiceName = String(req.headers['x-voice-name'] || 'Voz clonada VozForge').slice(0, 80);
+    const voiceLang = String(req.headers['x-voice-lang'] || 'pt').slice(0, 10);
+    const voiceDesc = String(req.headers['x-voice-desc'] || 'Clone vocal criado no VozForge Studio.').slice(0, 200);
+    const mime = String(req.headers['x-voice-mime'] || 'audio/webm');
+
+    const form = new FormData();
+    form.append('name', voiceName);
+    form.append('description', voiceDesc);
+    form.append('language', voiceLang);
+    form.append('clip', new Blob([sample], { type: mime }), 'amostra');
+
+    const r = await fetch(CARTESIA_CLONE_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': cs.key, 'Cartesia-Version': CARTESIA_VERSION },
+      body: form
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const msg = (data && (data.detail || data.message)) || `Erro Cartesia HTTP ${r.status}`;
+      return res.status(r.status === 429 ? 429 : 502).json({ error: { code: r.status, message: msg } });
+    }
+    return res.json({ ok: true, id: data.id || null, name: data.name || voiceName });
+  } catch (error) {
+    console.error('Error in /api/cartesia/clone:', error);
+    return res.status(500).json({ error: { message: error.message || 'Erro ao clonar voz na Cartesia.' } });
   }
 });
 
@@ -836,7 +987,13 @@ app.post('/api/interactions', async (req, res) => {
       }
     }
 
-    const data = result.data;
+    let data = result.data;
+
+    // Normalize upstream error arrays: Google pode responder [{error:{...}}]
+    // em vez de um objeto; promove o primeiro elemento para o cliente ler error.message.
+    if (result.status >= 400 && Array.isArray(data) && data.length && data[0] && data[0].error) {
+      data = data[0];
+    }
 
     // Se a chamada teve sucesso, registra o consumo do usuário
     if (result.status >= 200 && result.status < 300) {
@@ -885,6 +1042,14 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`VozForge Studio running on http://0.0.0.0:${PORT}`);
+});
+
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`[VozForge] A porta ${PORT} já está em uso por outro processo (provável instância anterior do servidor). Encerre-a ou inicie com outra porta, ex.: PORT=3001 npm run dev.`);
+    process.exit(1);
+  }
+  throw err;
 });

@@ -1,9 +1,10 @@
-const CACHE_NAME = 'vozforge-cache-v2';
+const CACHE_NAME = 'vozforge-cache-v4';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/vendor/lame.min.js',
+  '/cartesia.js',
   '/icon.svg',
   '/icon-192.png',
   '/icon-512.png',
