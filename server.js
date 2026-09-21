@@ -581,14 +581,29 @@ app.get('/api/cartesia/voices', async (req, res) => {
   try {
     const cs = getCartesiaKey();
     if (!cs) return res.status(400).json({ error: { message: 'Nenhuma chave Cartesia configurada no servidor (CARTESIA_API_KEY).' } });
-    const r = await fetch(CARTESIA_VOICES_URL, { headers: cartesiaHeaders(cs.key) });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const msg = (data && (data.detail || data.message)) || `Erro Cartesia HTTP ${r.status}`;
-      return res.status(r.status).json({ error: { message: msg } });
+    const languageFilter = String(req.query.language || '').trim();
+    const all = [];
+    let cursor = null;
+    // A API pagina (limit máx. 100). Busca todas as páginas antes de filtrar.
+    for (let page = 0; page < 10; page++) {
+      const url = new URL(CARTESIA_VOICES_URL);
+      url.searchParams.set('limit', '100');
+      if (languageFilter) url.searchParams.set('language', languageFilter);
+      if (cursor) url.searchParams.set('starting_after', cursor);
+      const r = await fetch(url.toString(), { headers: cartesiaHeaders(cs.key) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const msg = (data && (data.detail || data.message)) || `Erro Cartesia HTTP ${r.status}`;
+        return res.status(r.status).json({ error: { message: msg } });
+      }
+      const pageVoices = Array.isArray(data)
+        ? data
+        : (Array.isArray(data.voices) ? data.voices : (Array.isArray(data.data) ? data.data : []));
+      all.push(...pageVoices);
+      cursor = data && data.has_more ? data.next_page : null;
+      if (!cursor) break;
     }
-    const voices = Array.isArray(data) ? data : (data.voices || []);
-    return res.json({ ok: true, voices });
+    return res.json({ ok: true, voices: all });
   } catch (err) {
     return res.status(500).json({ error: { message: err.message || 'Erro ao listar vozes Cartesia.' } });
   }

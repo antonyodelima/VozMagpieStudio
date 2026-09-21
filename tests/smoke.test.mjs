@@ -65,14 +65,17 @@ test('GET /api/config reports vault key status', async () => {
   assert.equal(typeof body.vaultActive, 'boolean');
 });
 
-test('GET /api/vault/status exposes limits and zeroed usage', async () => {
+test('GET /api/vault/status exposes limits and consistent usage', async () => {
   const res = await fetch(`${BASE}/api/vault/status`);
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.ok, true);
   assert.equal(body.limits.enabled, true);
-  assert.equal(body.userUsage.generations, 0);
-  assert.equal(body.userUsage.generationsRemaining, body.limits.maxDailyGenerations);
+  // Usage reflects the caller's persisted counters (anonymous user), which are
+  // not guaranteed to be zero on a shared workspace - assert the invariant.
+  assert.equal(typeof body.userUsage.generations, 'number');
+  assert.ok(body.userUsage.generations >= 0);
+  assert.equal(body.userUsage.generationsRemaining, body.limits.maxDailyGenerations - body.userUsage.generations);
 });
 
 test('vault endpoints reject wrong admin PIN', async () => {
